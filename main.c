@@ -1,7 +1,7 @@
 /**@file main.c
  * @brief main - Program, libs, and logging facilities setup and handling
  * @author Tiago Alves Macambira
- * @version $Id: main.c,v 1.28 2004-03-26 20:54:29 tmacam Exp $
+ * @version $Id: main.c,v 1.29 2004-08-18 20:58:01 tmacam Exp $
  * 
  * 
  * Based on sample code provided with libnids and copyright (c) 1999
@@ -32,6 +32,7 @@
 #include <pwd.h>
 #include <grp.h>
 #include <time.h>
+#include <strings.h>
 
 #include <assert.h>
 
@@ -39,7 +40,7 @@
 #include "e2k_utils.h"
 #include "e2k_state_machine.h"
 
-
+#include "writers_pool.h"
 
 /* ********************************************************************  
  *  Global defines - error handling macros 
@@ -58,6 +59,7 @@ pcap_t* pcap_descriptor = NULL;
 long int n_connections;
 time_t next_syslog_report_time = 0;
 int is_sniffing = 0;
+writers_pool_t w_pool = NULL;
 
 inline void syslog_drops(void);
 int rotate_logfile( int interval, int max_size );
@@ -75,6 +77,12 @@ inline void handle_tcp_close(struct tcp_stream *a_tcp, conn_state_t **conn_state
 	/* Ignore both client and server-side streams */
 	a_tcp->client.collect = 0;
 	a_tcp->server.collect = 0; 
+
+	/* Release any writer it has a reference to */
+	if (conn_state->download_writer != NULL ) {
+		writers_pool_writer_release(w_pool,
+				hash2str(&conn_state->download_hash));
+	}
 	
 	fprintf(stdout,"%s %s closed\n",strtimestamp(),conn_state->address_str);
 	/* free conn. related data */
@@ -148,11 +156,13 @@ inline void handle_tcp_establish(struct tcp_stream *a_tcp, conn_state_t **conn_s
 	
 	/* Alloc the state tracking structure */
 	conn_state=(conn_state_t *)malloc(sizeof( conn_state_t));
-	/* FIXME : check if null*/
+	assert(conn_state != NULL);
 	/* Register/link state tracking data with the stream*/
 	*conn_state_ptr = conn_state;
 	
-	/* Setup state tracking structures */
+	/* Setup state tracking structures 
+	 * - clear (i.e., set to the defaults) */
+	bzero(conn_state,sizeof( conn_state_t)); 
 	conn_state->ignore = 0;
 	/* - address_str */
 	strncpy(conn_state->address_str, address_str(a_tcp->addr),
@@ -168,6 +178,11 @@ inline void handle_tcp_establish(struct tcp_stream *a_tcp, conn_state_t **conn_s
 	conn_state->server.state = wait_full_header;
 	conn_state->server.connection = conn_state;
 	conn_state->server.blessed = 0;
+
+	/* Writer Pool extensions setup  -> bzero took care of them 
+	 * conn_state->download_hash = ...
+	 * conn_state->download_writer = NULL;
+	 */
 
 	fprintf( stdout,
 		 "%s %s established\n",
@@ -417,6 +432,16 @@ int main(int argc, char* argv[])
 	next_syslog_report_time = time(NULL);
 	pcap_descriptor = NULL; /* setted @ syslog_drops() */
 	openlog("e2ksniff", 0, LOG_LOCAL0);
+
+	/* Setup WritersPool */
+	if( writers_pool_init(&w_pool, E2K_WRITER_POOL_SAVE_PATH) !=
+			WRITERS_POOL_OK)
+	{
+		syslog( nids_params.syslog_level,
+				" == ERROR creating WritersPool");
+		fprintf(stdout, " == ERROR creating WritersPool");
+		fprintf(stderr, " == ERROR creating WritersPool");
+	}
 	
 	/* Setup libNIDS - defaults */
 	nids_params.device = "any";
@@ -483,6 +508,14 @@ int main(int argc, char* argv[])
 	syslog( nids_params.syslog_level," == Sniffing stopped - ERROR?");
 	fprintf(stdout," == Sniffing stopped - ERROR?\n");
 	fprintf(stderr," == Sniffing stopped - ERROR?\n");
+
+	/* Destroy our beloved WritersPool*/
+	if ( writers_pool_destroy(w_pool) != WRITERS_POOL_OK ) {
+		syslog( nids_params.syslog_level,
+				" == ERROR destroying WritersPool");
+		fprintf(stdout, " == ERROR destroying WritersPool");
+		fprintf(stderr, " == ERROR destroying WritersPool");
+	}
 
 	return 0;
 }

@@ -1,7 +1,7 @@
 /**@file e2k_utils.c
  * @brief Utility functions
  * @author Tiago Alves Macambira
- * @version $Id: e2k_utils.c,v 1.4 2004-03-21 02:29:07 tmacam Exp $
+ * @version $Id: e2k_utils.c,v 1.5 2004-08-18 20:58:00 tmacam Exp $
  * 
  * 
  * Based on sample code provided with libnids and copyright (c) 1999
@@ -51,7 +51,7 @@ unsigned char* hexstr (unsigned char *data, unsigned int len)
         return result;
 }
 
-unsigned char* asprintf_hash(struct e2k_hash_t* hash )
+unsigned char* asprintf_hash(const struct e2k_hash_t* hash )
 {
 	byte* hash_data = hash->data; /* Saving 16 ptrs. indirections*/
 	unsigned char* result = NULL;
@@ -67,6 +67,21 @@ unsigned char* asprintf_hash(struct e2k_hash_t* hash )
 	} else {
 		return result;
 	}
+
+}
+
+const unsigned char* hash2str(const struct e2k_hash_t* hash )
+{
+	byte* hash_data = hash->data; /* Saving 16 ptrs. indirections*/
+	static unsigned char result[33];
+
+	sprintf(result, "%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x",
+		hash_data[0], hash_data[1], hash_data[2], hash_data[3], 
+		hash_data[4], hash_data[5], hash_data[6], hash_data[7],
+		hash_data[8], hash_data[9], hash_data[10],hash_data[11],
+		hash_data[12],hash_data[13],hash_data[14],hash_data[15]);
+
+	return result;
 
 }
 

@@ -1,7 +1,7 @@
 /**@file main.h
  * @brief main - Program, libs, and logging facilities setup and handling
  * @author Tiago Alves Macambira
- * @version $Id: main.h,v 1.9 2004-04-01 22:29:28 tmacam Exp $
+ * @version $Id: main.h,v 1.10 2004-08-18 20:58:01 tmacam Exp $
  * 
  * Based on sample code provided with libnids and copyright (c) 1999
  * Rafal Wojtczuk <nergal@avet.com.pl>. All rights reserved.
@@ -16,6 +16,9 @@
 #ifndef _MAIN__H_
 #define _MAIN__H_
 
+#include "e2k_defs.h"
+#include "writers_pool.h"
+
 /* ********************************************************************  
  *  Global defines - configuration 
  * ******************************************************************** */
@@ -26,6 +29,7 @@
 #define LOGROTATE_INTERVAL 15*60
 #define LOGROTATE_MAX_SIZE 10*1024*1024
 #define LOGROTATE_WITH_N_PACKETS 100;
+#define E2K_WRITER_POOL_SAVE_PATH "/tmp"
 
 #define UDP_NICE_INCREMENT 10
 
@@ -37,9 +41,18 @@
  * ******************************************************************** */
 
 
-
 //#define BEEN_HERE do {printf("BEEN HERE: %03i\n",__LINE__);} while(0) 
 #define BEEN_HERE do {} while(0)
+
+/* ********************************************************************  
+ *  Global variables
+ * ******************************************************************** */
+
+extern writers_pool_t w_pool; /* Defined @ main.c */
+
+/* ********************************************************************  
+ *  Strucutres - declaration and typedefs
+ * ******************************************************************** */
 
 /**@brief In which state are we rearding the sniffing of a given stream? */
 enum sniff_state { 
@@ -92,6 +105,10 @@ struct conn_state_t {
 	unsigned char address_str[CONN_STATE_ADDRESS_STR_SZ];
 	/** Should this connection be ignored ?*/
 	int ignore;
+	/** Hash of the file being downloaded - if any. One per conn. */
+	struct e2k_hash_t download_hash;
+	/** writer of the file being downloaded associated writer */
+	writers_pool_writer_t download_writer;
 };
 
 

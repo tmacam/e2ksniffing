@@ -1,10 +1,12 @@
 all:main
 
-LIBS = -lnids -lpcap
+LIBS = -lnids -lpcap -lstdc++
+INCLUDE_DIR = -IFragmentSaver/
+CFLAGS= -ggdb $(INCLUDE_DIR)
 #CC=gcc -O3 -march=athlon -Winline 
-CC=gcc -ggdb
+CC=gcc $(CFLAGS)
 
-OBJS=main.o e2k_utils.o  e2k_proto.o e2k_state_machine.o
+OBJS=main.o e2k_utils.o  e2k_proto.o e2k_state_machine.o writers_pool_bundle.o
 
 main: $(OBJS)
 	$(CC) $(LIBS) $(OBJS) -o main
@@ -22,3 +24,8 @@ teste: teste.c e2k_defs.h main.h
 
 udp_main : udp_main.c e2k_defs.h main.h e2k_utils.o
 	$(CC) $(LIBS) e2k_utils.o e2k_proto.o udp_main.c -o udp_main 
+
+.PHONY: clean
+
+clean:
+	-rm -rf *.o main udp_main

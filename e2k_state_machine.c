@@ -1,7 +1,7 @@
 /**@file e2k_state_machine.c
  * @brief edonkey state-machine control function
  * @author Tiago Alves Macambira
- * @version $Id: e2k_state_machine.c,v 1.8 2004-03-26 21:07:58 tmacam Exp $
+ * @version $Id: e2k_state_machine.c,v 1.9 2004-08-18 20:58:00 tmacam Exp $
  * 
  * 
  * Based on sample code provided with libnids and copyright (c) 1999
@@ -99,7 +99,7 @@ int handle_state_wait_full_header(int is_server,
 		/* Enough data - Can we change state ? */
 
 		/* Read header data */
-		(void*)hdr = (void*)(halfstream->data + offset_shift);
+		hdr = (void*)(halfstream->data + offset_shift);
 		/* Don't we perl lovers/haters adore verbose outputs? */
 		/*fprintf(stdout,"Header > %s proto=0x%02x packet_size=%i msg_id=0x%02x\n", state->connection->address_str, hdr->proto, hdr->packet_size, hdr->msg);*/
 		
@@ -151,7 +151,7 @@ int handle_state_wait_full_packet( int is_server,
 	/* Access the header of the current packet */
 	int offset_shift = state->next_packet_offset - halfstream->offset;
 	pkt_data = halfstream->data + offset_shift;
-	(void*)hdr = (void*)pkt_data; /* Read header data*/
+	hdr = (void*)pkt_data; /* Read header data*/
 
 	/* So, the next full donkey packet is how many bytes away from the
 	 * start of halfstream->data ? */
@@ -164,7 +164,8 @@ int handle_state_wait_full_packet( int is_server,
 		/* yes, we have */
 		handle_edonkey_packet(  is_server,
 					pkt_data,
-					state->connection->address_str);
+					state->connection->address_str,
+					state->connection);
 		/* Since we are done with this packet,
 		 * let's wait for the next packet header */
 		state->state= wait_full_header;

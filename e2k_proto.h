@@ -1,7 +1,7 @@
 /**@file e2k_proto.h
  * @brief edonkey protocol handling funtions
  * @author Tiago Alves Macambira
- * @version $Id: e2k_proto.h,v 1.1 2004-03-11 20:13:49 tmacam Exp $
+ * @version $Id: e2k_proto.h,v 1.2 2004-08-18 20:58:00 tmacam Exp $
  * 
  * 
  * Based on sample code provided with libnids and copyright (c) 1999
@@ -16,6 +16,8 @@
 #ifndef _E2K_PROTO__H_
 #define _E2K_PROTO__H_
 
+#include "main.h"
+
 /* ********************************************************************  
  * 
  * ******************************************************************** */
@@ -26,7 +28,11 @@
  * 
  * @param addr_tuple pointer to a structure with  addres/port of the
  * two endpoints of the connection from where the packet was sniffed.
+ *
+ * @param connection a pointer to the data related to stream/connection
+ * being monitored from where this packet came from...
  */
-void handle_edonkey_packet(int is_server, char *pkt_data, char *address_str);
+void handle_edonkey_packet(int is_server, char *pkt_data, char *address_str,
+		conn_state_t* connection);
 
 #endif /*_E2K_PROTO__H_*/

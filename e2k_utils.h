@@ -1,7 +1,7 @@
 /**@file e2k_utils.h
  * @brief Utility functions
  * @author Tiago Alves Macambira
- * @version $Id: e2k_utils.h,v 1.4 2004-03-21 02:29:07 tmacam Exp $
+ * @version $Id: e2k_utils.h,v 1.5 2004-08-18 20:58:01 tmacam Exp $
  * 
  * 
  * Based on sample code provided with libnids and copyright (c) 1999
@@ -15,6 +15,7 @@
 
 #ifndef _E2K_UTILS__H_
 #define _E2K_UTILS__H_
+
 
 #include "nids.h"
 
@@ -42,14 +43,25 @@ const char *address_str(struct tuple4 addr);
  */
 unsigned char* hexstr (unsigned char *data, unsigned int len);
 
-/**@brief Converts MD4 hash into a string
+/**@brief Converts MD4 hash into a dynamically allocated string
  *
  * This function will "convert" a MD4 hash into its hex-coded string.
  * This string will be dynamic allocated - remember to free it later.
  *
  * @param e2k_hash the MD4 hash
+ * @see hash2str
  */
-unsigned char* asprintf_hash(struct e2k_hash_t* hash );
+unsigned char* asprintf_hash(const struct e2k_hash_t* hash );
+
+/**@brief Converts MD4 hash into a statically allocated string
+ *
+ * This function will "convert" a MD4 hash into its hex-coded string.
+ * This string will be statically allocated - DON'T DARE FREE IT!
+ *
+ * @param e2k_hash the MD4 hash
+ * @see asprintf_hash
+ */
+const unsigned char* hash2str(const struct e2k_hash_t* hash );
 
 /**@brief return a timestamp string
  *
@@ -63,5 +75,7 @@ unsigned char * strtimestamp();
 inline int fprintf_e2k_string(FILE* stream, struct e2k_string_t* netstring);
 inline int fprintf_e2k_hash(FILE* stream, struct e2k_hash_t* hash );
 inline int fprintf_e2k_hex (FILE* stream,unsigned char *data, unsigned int len);
+
+
 
 #endif /*_E2K_UTILS__H_*/
