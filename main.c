@@ -1,7 +1,7 @@
 /**@file main.c
  * @brief main - Program, libs, and logging facilities setup and handling
  * @author Tiago Alves Macambira
- * @version $Id: main.c,v 1.24 2004-03-21 20:24:09 tmacam Exp $
+ * @version $Id: main.c,v 1.25 2004-03-22 02:13:38 tmacam Exp $
  * 
  * 
  * Based on sample code provided with libnids and copyright (c) 1999
@@ -363,7 +363,8 @@ int rotate_logfile( int interval, int max_size )
 		/* Zera o contador de tempo */
 		time(&last_rotate);
 		/* Fecha a STDOUT */
-		close(STDOUT_FILENO);
+		fflush(stdout);
+		close(STDOUT_FILENO); /* dup2 will close it anyway... */
 		/* Fecha e renomeia o log-file antigo */
 		if( log_file != NULL) {
 			fclose(log_file);
