@@ -1,4 +1,4 @@
-all: max_offsets byte_hit_rate
+all: max_offsets byte_hit_rate byte_hit_rate_simple
 
 LogParser.o: LogParser.cpp LogParser.h
 	g++ -ggdb -c LogParser.cpp -o LogParser.o
@@ -17,6 +17,10 @@ max_offsets: LogParser.o MaxOffsetParser.o max_offsets.o
 
 byte_hit_rate: LogParser.o ByteHitParser.o byte_hit_rate.o
 	g++ -ggdb LogParser.o ByteHitParser.o byte_hit_rate.o -o byte_hit_rate
+
+byte_hit_rate_simple: LogParser.o ByteHitParser.o byte_hit_rate_simple.o
+	g++ -ggdb LogParser.o ByteHitParser.o byte_hit_rate_simple.o -o byte_hit_rate_simple
+	
 
 .PHONY: clean
 
