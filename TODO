@@ -13,6 +13,7 @@ ALL =============================
 * Metalist max size
 TCP ==============================
 * colocar o suporte ao nice
+* condensar mensagens de SENDING e COMPRESSED
 UDP ==============================
 * Pegar mais metadados para colocar no core... (convêm salvar todo o metatag?!)
 * Um pacote pode vir com MAIS de uma FILEINFO!!! Tratar isso
