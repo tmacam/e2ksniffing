@@ -1,6 +1,6 @@
 /* 
  * @author Tiago Alves Macambira
- * @version $Id: main.c,v 1.10 2004-02-18 05:01:17 tmacam Exp $
+ * @version $Id: main.c,v 1.11 2004-03-02 07:57:21 tmacam Exp $
  * 
  * 
  * Based on sample code provided with libnids and copyright (c) 1999
@@ -558,19 +558,19 @@ void out_of_memory_callback()
 int main(int argc, char* argv[])
 {
 	/* Setup libNIDS - defaults */
-	nids_params.device = "all";
+	nids_params.device = "any";
 	nids_params.one_loop_less = 0; /* We depend of this semantic */
 	nids_params.scan_num_hosts = 0; /* Turn port-scan detection off */
 	nids_params.no_mem = out_of_memory_callback;
-	/* nids_params.n_hosts=256; * FIXME value too small? */
+	/* nids_params.n_hosts=1024; * FIXME value too small? */
 
 	/* Load recorded trace-file or sniff the network?*/
 	if (argc > 1){
 		nids_params.device = NULL;
 		nids_params.filename = argv[1];
-		printf("Loading trace file: %s\n",nids_params.filename );
+		printf(" == Loading trace file: %s\n",nids_params.filename );
 	} else {
-		printf("No tracefile given. Sniffing from the network.\n");
+		printf(" == No tracefile given. Sniffing from the network.\n");
 	}
 
 	/* Start libNIDS engine */
@@ -587,7 +587,7 @@ int main(int argc, char* argv[])
 
 	nids_register_tcp(tcp_callback);
 	
-	printf("Sniffing started.\n");
+	printf(" == Sniffing started.\n");
 	nids_run(); /* Loop forever*/
 	return 0;
 }
