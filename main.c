@@ -1,6 +1,6 @@
 /* 
  * @author Tiago Alves Macambira
- * @version $Id: main.c,v 1.8 2004-02-16 04:58:51 tmacam Exp $
+ * @version $Id: main.c,v 1.9 2004-02-16 05:39:23 tmacam Exp $
  * 
  * 
  * Based on sample code provided with libnids and copyright (c) 1999
@@ -133,11 +133,20 @@ void handle_edonkey_packet(int is_server, char *pkt_data, char *address_str)
 			CHECK_IF_NULL(hash_str);
 			fprintf(stdout,"FILE REQUEST hash[%s]",hash_str);
 		} else if (hdr->msg == EDONKEY_MSG_REQUEST_PARTS ) {
-			struct e2k_packet_file_request_t *file_req = NULL;
-			(void *)file_req = (void *)pkt_data;
-			hash_str=asprintf_hash(&file_req->hash);
+			struct e2k_packet_request_parts_t *parts_req = NULL;
+			(void *)parts_req = (void *)pkt_data;
+			hash_str=asprintf_hash(&parts_req->hash);
 			CHECK_IF_NULL(hash_str);
-			fprintf(stdout,"REQUEST PARTS hash[%s]",hash_str);
+			fprintf(stdout,
+				"REQUEST PARTS hash[%s] offset_1[%i,%i] offset_2[%i,%i] offset_3[%i,%i]",
+				hash_str,
+				parts_req->start_offset_1,
+				parts_req->end_offset_1,
+				parts_req->start_offset_2,
+				parts_req->end_offset_2,
+				parts_req->start_offset_3,
+				parts_req->end_offset_3
+				);
 		} else if (hdr->msg == EDONKEY_MSG_SENDING_PART ) {
 			struct e2k_packet_sending_part_t *sending_pkt = NULL;
 			(void *)sending_pkt = (void *)pkt_data;

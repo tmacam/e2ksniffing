@@ -1,7 +1,7 @@
 /**@file e2k_defs.h
  * @brief Common edonkey definitions
  * @author Tiago Alves Macambira
- * @version $Id: e2k_defs.h,v 1.5 2004-02-16 04:58:51 tmacam Exp $
+ * @version $Id: e2k_defs.h,v 1.6 2004-02-16 05:39:23 tmacam Exp $
  * 
  */
 
@@ -40,6 +40,17 @@ struct e2k_packet_file_request_t {
 	struct e2k_hash_t hash;
 }__attribute__ ((packed));
 
+
+struct e2k_packet_request_parts_t {
+	struct e2k_header_t header;
+	struct e2k_hash_t hash;
+	dword start_offset_1;
+	dword start_offset_2;
+	dword start_offset_3;
+	dword end_offset_1;
+	dword end_offset_2;
+	dword end_offset_3;
+}__attribute__ ((packed));
 
 struct e2k_packet_sending_part_t {
 	struct e2k_header_t header;
