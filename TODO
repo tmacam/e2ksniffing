@@ -1,5 +1,9 @@
 BUGS:
  * assert (offset_end - offset_start) <= (packet_len - header)
+ * outro formato de serial, um que seja resistente à quedas do sniffer.
+ 	- ts c/ precisão de micro-secs
+	- algo tipo {ts,serial}, onde serial seria incrementado sempre
+	  que o ts fosse igual ao do último serial solicitado.
 
 
 Programming Task
