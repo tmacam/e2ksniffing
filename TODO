@@ -7,5 +7,6 @@ Programming Task
 * make test - sizeof float == 4, sizeof * = esperado?
 * erros dentro da metalist
 * rodar essa porra no valgrind
+* Zlib support (compressed packets, sending compressed )
 
 Implantação da Arquitetura

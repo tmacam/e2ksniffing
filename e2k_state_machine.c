@@ -1,7 +1,7 @@
 /**@file e2k_state_machine.c
  * @brief edonkey state-machine control function
  * @author Tiago Alves Macambira
- * @version $Id: e2k_state_machine.c,v 1.3 2004-03-24 20:12:36 tmacam Exp $
+ * @version $Id: e2k_state_machine.c,v 1.4 2004-03-26 20:00:49 tmacam Exp $
  * 
  * 
  * Based on sample code provided with libnids and copyright (c) 1999
@@ -26,6 +26,35 @@
 #include "e2k_state_machine.h"
 
 
+/* ******************************************************************** 
+ * Module's Private Functions
+ * ******************************************************************* */
+
+/**@brief Verifies if a packet is "sane".
+ *
+ * Sane here means:
+ * 	* It uses a known protocol in its header
+ * 	* It is not larger then PACKET_MAXIMUM_SIZE
+ *
+ * @return (int as bool) 1 if packet is sane, 0 otherwise.
+ */
+inline int packet_is_sane(struct e2k_header_t* hdr)
+{
+	if ( // Is using a known protocol...
+	     (  (hdr->proto == EDONKEY_PROTO_EDONKEY) ||
+	        (hdr->proto == EDONKEY_PROTO_EMULE)  ) &&
+	     // Is not stupidly large 
+	     (hdr->packet_size < PACKET_MAXIMUM_SIZE)
+	    ){
+		return 1
+	} else {
+		return 0
+	}
+}
+
+/* ******************************************************************** 
+ * Module's Public Functions
+ * ******************************************************************* */
 
 int get_next_packet_offset(int current_offset, int current_packet_len)
 {

@@ -1,7 +1,7 @@
 /**@file main.c
  * @brief main - Program, libs, and logging facilities setup and handling
  * @author Tiago Alves Macambira
- * @version $Id: main.c,v 1.26 2004-03-25 21:39:05 tmacam Exp $
+ * @version $Id: main.c,v 1.27 2004-03-26 20:00:50 tmacam Exp $
  * 
  * 
  * Based on sample code provided with libnids and copyright (c) 1999
@@ -69,6 +69,8 @@ inline void handle_tcp_close(struct tcp_stream *a_tcp, conn_state_t **conn_state
 {
 	conn_state_t* conn_state = *conn_state_ptr;
 	
+	assert(conn_state != NULL);
+
 	/* Ignore both client and server-side streams */
 	a_tcp->client.collect = 0;
 	a_tcp->server.collect = 0; 
