@@ -4,7 +4,7 @@
 
 @author: Tiago Alves Macambira
 
-$Id: LogParser.py,v 1.5 2004-04-05 05:46:26 tmacam Exp $
+$Id: LogParser.py,v 1.6 2004-04-05 18:31:08 tmacam Exp $
 
 O parser segue a mesma idéia de vários parser XML existentes: para cada
 mensagem do log, ele chama um método correspondente.
@@ -45,7 +45,8 @@ class LogParser:
 		self.__regexp['EMULE COMPRESSED DATA:1']=re.compile(r'EMULE COMPRESSED DATA hash\[(?P<hash>\w+)\] offset_start=(?P<offset_inicial>\d+) len=(?P<offset_compressed_length>\d+)')
 		self.__regexp['EMULE COMPRESSED DATA:2']=re.compile(r'EMULE COMPRESSED DATA hash\[(?P<hash>\w+)\] offset\[(?P<offset_inicial>\d+),(?P<offset_compressed_length>\d+)\]')
 		self.__regexp['FILE STATUS']=re.compile(r'FILE STATUS hash\[(?P<hash>\w+)\] len(=|\[)(?P<length>\d+)\]* bitmap=0x\[(?P<bitmap>\w*)\]')
-		self.__regexp['FILE REQUEST ANSWER']=re.compile(r'FILE REQUEST ANSWER hash\[(?P<hash>\w+)\] filename\[(?P<filename>.*)\]\s*$')
+		self.__regexp['FILE REQUEST ANSWER:1']=re.compile(r'FILE REQUEST ANSWER hash\[(?P<hash>\w+)\] filename\[(?P<filename>.*)\]\s*$')
+		self.__regexp['FILE REQUEST ANSWER:2']=re.compile(r'FILE REQUEST ANSWER hash\[(?P<hash>\w+)\] filename\[(?P<filename>.*)\s*$')
 		self.__regexp['PREFIX']=re.compile(r'(?P<timestamp>[\d-]+) (?P<connection>[\d:\.,]+)\[(?P<clientserver>\w)\] proto=0x\w\w msg_id=0x\w\w size=\d+ ')
 
 	def __processLine(self):
@@ -74,13 +75,15 @@ class LogParser:
 						    long(match.group('length')),
 						    match.group('bitmap'))
 			elif self.line.find('FILE REQUEST ANSWER') >= 0:
-				match=self.__regexp['FILE REQUEST ANSWER'].search(self.line)
+				match=self.__regexp['FILE REQUEST ANSWER:1'].search(self.line)
+				if match is None:
+					match=self.__regexp['FILE REQUEST ANSWER:2'].search(self.line)
 				self.onFileRequestAnswer( match.group('hash'),
 						    match.group('filename'))
 			return
 		except AttributeError, e:
 			self.onError(self.line,e)
-			raise
+			#raise
 		# Ops! It didn't match! Fallback
 		self.onUnknown(self.line)
 			
