@@ -1,7 +1,7 @@
 /**@file kad_defs.h
  * @brief Common kad definitions
  * @author Tiago Alves Macambira
- * @version $Id: kad_defs.h,v 1.2 2004-12-10 16:48:02 tmacam Exp $
+ * @version $Id: kad_defs.h,v 1.3 2004-12-10 19:53:28 tmacam Exp $
  *
  * Some parts of this file are from ethereal's packet-edonkey.{c,h}, and
  * thus covered by it's own licence (GPL compat)
@@ -81,6 +81,15 @@ struct kad_udp_publish_entry_t{
 	struct kad_udp_taglist_t taglist;
 }__attribute__ ((packed));
 
+struct kad_udp_search_tree_t {
+	byte data;
+}__attribute__ ((packed));
+
+
+/* ********************************************************************  
+ * Packets
+ * ******************************************************************** */
+
 struct kad_udp_packet_request_t{
 	struct e2k_udp_header_t header;
 	byte type;
@@ -109,6 +118,29 @@ struct kad_udp_packet_publish_req_t{
 	struct kad_udp_publish_entry_t publish_entries; 
 }__attribute__ ((packed));
 
+/** if msg->len (header excluded?) == 17: 
+ * 	if restrictive:
+ * 		source search
+ * 	else:
+ * 		this is a keyword search
+ *  else if restrictive:
+ *  	read search tree
+ *  	
+ */
+struct kad_udp_packet_search_req_t{
+	struct e2k_udp_header_t header;
+	struct e2k_hash_t target;
+	byte restrictive;
+	struct kad_udp_search_tree_t search_tree;
+}__attribute__ ((packed));
+
+struct kad_udp_packet_search_res_t{
+	struct e2k_udp_header_t header;
+	struct e2k_hash_t target;
+	word count; /**< Number of entries in this publish request */
+	/** entries (use it as an array) */
+	struct kad_udp_publish_entry_t publish_entries; 
+}__attribute__ ((packed));
 
 
 #endif /* ifndef _KAD_DEFS__H_ */

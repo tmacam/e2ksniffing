@@ -375,6 +375,25 @@ void kad_proto_handle_publish_req(struct kad_udp_packet_publish_req_t* packet)
 	}
 }
 
+void kad_proto_handle_search_req(struct kad_udp_packet_search_req_t* packet, int len)
+{
+	
+	fprintf(stdout," target: ");
+	fprintf_kad_key(stdout,&packet->target);
+	fprintf(stdout," restrictive: %u",packet->restrictive);
+	
+	len -= sizeof(struct e2k_udp_header_t);
+	if (len == 17) {
+		if (packet->restrictive) {
+			fprintf(stdout, " SOURCE");
+		} else {
+			fprintf(stdout, " KEYWRD");
+		}
+	} else if ( len > 17 && packet->restrictive ) {
+		fprintf (stdout," SEARCH");
+	}
+}
+
 /* ********************************************************************  
  * Sniffing control functions
  * ******************************************************************** */
@@ -429,6 +448,12 @@ void udp_callback(struct tuple4* addr, char* buf, int len, void* not_used)
 			kad_proto_handle_publish_res((void*)packet);
 			break;
 		case KADEMLIA_PUBLISH_REQ:
+			kad_proto_handle_publish_req((void*)packet);
+			break;
+		case KADEMLIA_SEARCH_REQ:
+			kad_proto_handle_search_req((void*)packet,len);
+			break;
+		case KADEMLIA_SEARCH_RES:
 			kad_proto_handle_publish_req((void*)packet);
 			break;
 		}
