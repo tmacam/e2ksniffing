@@ -1,7 +1,7 @@
 /**@file e2k_defs.h
  * @brief Common edonkey definitions
  * @author Tiago Alves Macambira
- * @version $Id: e2k_defs.h,v 1.19 2004-08-28 22:21:06 tmacam Exp $
+ * @version $Id: e2k_defs.h,v 1.20 2004-12-06 16:46:46 tmacam Exp $
  *
  * Some parts of this file are from ethereal's packet-edonkey.{c,h}, and
  * thus covered by it's own licence (GPL compat)
@@ -30,6 +30,8 @@
 
 #define EDONKEY_PROTO_EDONKEY 0xe3
 #define EDONKEY_PROTO_EMULE  0xc5
+#define KAD_PROTO_KAD 0xe4
+#define KAD_PROTO_PACKED 0xe5
 
 #define EDONKEY_MSG_HELLO 0x01
 #define EDONKEY_MSG_HELLO_ANSWER 0x4c

@@ -1,6 +1,6 @@
 #
 # Author: Tiago Alves Macambira
-# Version: $Id: Makefile,v 1.12 2004-08-25 23:26:06 tmacam Exp $
+# Version: $Id: Makefile,v 1.13 2004-12-06 16:46:46 tmacam Exp $
 #
 # See COPYING for license details
 
@@ -9,7 +9,7 @@ FRAGMENTED_WRITER_DIR = ./FragmentSaver/
 
 LIBS = -lnids -lpcap -lstdc++ -lz
 INCLUDE_DIR = -IFragmentSaver/
-CFLAGS= -ggdb $(INCLUDE_DIR)
+CFLAGS= -ggdb $(INCLUDE_DIR) -DP4P_SIGNATURE_SHORT_CIRCUIT=8388608l
 #CC=gcc -O3 -march=athlon -Winline 
 CC=gcc $(CFLAGS)
 
@@ -38,6 +38,9 @@ teste: teste.c e2k_defs.h main.h
 udp_main : udp_main.c e2k_defs.h main.h e2k_utils.o
 	$(CC) $(LIBS) e2k_utils.o e2k_proto.o udp_main.c -o udp_main 
 
+udp_kad_main: udp_kad_main.c e2k_defs.h main.h e2k_utils.o 
+	$(CC) $(LIBS) e2k_utils.o udp_kad_main.c -o udp_kad_main 
+	
 .PHONY: clean
 
 clean:
