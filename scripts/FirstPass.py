@@ -11,7 +11,7 @@ Ao final de sua execução teremos os seguintes arquivos:
 session.{bdb,gdb,db}
 hash.{bdb,gdbm,db}
 
-$Id: FirstPass.py,v 1.9 2004-04-05 19:14:23 tmacam Exp $
+$Id: FirstPass.py,v 1.10 2004-04-14 13:26:24 tmacam Exp $
 """
 
 import sys
@@ -22,7 +22,7 @@ import shelve
 class FirstPass(LogParser.LogParser):
 	"""Runing a file into this parser will populate 2 dictionaries:
 	    - sessions, with the format:
-	    	session[addr] -> { 'user_hash': str,
+	    	sessions[addr] -> { 'user_hash': str,
 				   'user_client': str,
 				   'user_server': str,
 				   'ts_begin'int,
@@ -31,6 +31,12 @@ class FirstPass(LogParser.LogParser):
 	    - hashes, with the format:
 	    	 hashes[hash] -> { 'names':[str],
 		 		   'bytes': int}
+	
+	Session statistics only refer to FINISHED sessions. Unfinished
+	sessions statistics can be obtained with the sessions attribute.
+
+	HashId statistics refer to the WHOLE observed logs, regardless 
+	of whether they happend in finished or unfinished sessions.
 	
 	With these 2 dicts on can generate the folling statistics:
 		- hash_names
@@ -48,7 +54,7 @@ class FirstPass(LogParser.LogParser):
 		- userid_sizes
 
 	NOTICE: we are using the tuple4/tcp endpoints's addresses as session
-	identifier.
+	identifier. Colisions may occur.
 	"""
 	def __init__(self,sessions,hashes,filename=None):
 		"""Session and hashes should be dictionary-like structures."""
@@ -57,7 +63,8 @@ class FirstPass(LogParser.LogParser):
 		
 		# Now, our instance-menbers
 		# session[ addr] -> {user_hash, ts_begin, ts_end, bytes,hash}
-		self.sessions = sessions
+		self.closed_sessions = sessions
+		self.sessions = {}
 		self.hashes = hashes
 	
 	def updateSessionTimestamps(self,addr,ts):
@@ -123,7 +130,17 @@ class FirstPass(LogParser.LogParser):
 			
 
 			
-
+	def onConnectionClosed(self,timestamp,connection):
+		"""Removes a session from the known sessions dict
+		and add it to the closed sessions dict"""
+		try:
+			sess = self.sessions[connection]
+			del self.sessions[connection]
+			self.closed_sessions[connection] = sess
+			#sys.stdout.write("Closed session: "+connection+"\n")
+		except KeyError:
+			#sys.stderr.write("Unknown session: "+connection+"\n")
+			pass
 		
 	
 	def onClientHelloAnswer(self,hash):
@@ -170,15 +187,19 @@ class FirstPass(LogParser.LogParser):
 
 
 if __name__ == '__main__':
-	sessions=shelve.open('sessions.shelve')
-	hashes=shelve.open('hashes.shelve')
-	parser=FirstPass(sessions,hashes)
+	closed_sessions=shelve.open('sessions.shelve')
+	saved_hashes=shelve.open('hashes.shelve')
+	hashes={}
+	parser=FirstPass(closed_sessions,hashes)
 	try:
 		parser.parse()
 	finally:
 		print parser.line
 		#dump(parser.sessions, open('sessions.pickle','w'))
 		#dump(parser.hashes, open('hashes.pickle','w'))
-		parser.sessions.close()
-		parser.hashes.close()
+		print "Saving hash statistics"
+		for h in hashes.keys():
+			saved_hashes[h] = hashes[h]
+		closed_sessions.close()
+		saved_hashes.close()
 

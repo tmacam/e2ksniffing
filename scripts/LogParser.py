@@ -4,7 +4,7 @@
 
 @author: Tiago Alves Macambira
 
-$Id: LogParser.py,v 1.6 2004-04-05 18:31:08 tmacam Exp $
+$Id: LogParser.py,v 1.7 2004-04-14 13:26:24 tmacam Exp $
 
 O parser segue a mesma idéia de vários parser XML existentes: para cada
 mensagem do log, ele chama um método correspondente.
@@ -37,7 +37,7 @@ class LogParser:
 			self.__file = open(logfile,'r')
 		else:
 			self.__file = sys.stdin
-			sys.stderr.write("Lendo da STDIN")
+			sys.stderr.write("Lendo da STDIN\n")
 	
 	def __compileRegExes(self):
 		self.__regexp['CLIENT HELLO']=re.compile(r'CLIENT HELLO .*\bclient_hash\[(?P<hash>\w+)\]')
@@ -48,10 +48,16 @@ class LogParser:
 		self.__regexp['FILE REQUEST ANSWER:1']=re.compile(r'FILE REQUEST ANSWER hash\[(?P<hash>\w+)\] filename\[(?P<filename>.*)\]\s*$')
 		self.__regexp['FILE REQUEST ANSWER:2']=re.compile(r'FILE REQUEST ANSWER hash\[(?P<hash>\w+)\] filename\[(?P<filename>.*)\s*$')
 		self.__regexp['PREFIX']=re.compile(r'(?P<timestamp>[\d-]+) (?P<connection>[\d:\.,]+)\[(?P<clientserver>\w)\] proto=0x\w\w msg_id=0x\w\w size=\d+ ')
+		self.__regexp['CLOSED']=re.compile(r'(?P<timestamp>[\d-]+) (?P<connection>[\d:\.,]+) closed$')
 
 	def __processLine(self):
 		try:
-			if self.line.find('CLIENT HELLO ANSWER') >= 0:
+			if self.line[-6:] == 'closed':
+				match=self.__regexp['CLOSED'].search(self.line)
+				self.onConnectionClosed(
+						long(match.group('timestamp')),
+						match.group('connection'))
+			elif self.line.find('CLIENT HELLO ANSWER') >= 0:
 				match=self.__regexp['CLIENT HELLO'].search(self.line)
 				self.onClientHelloAnswer( match.group('hash'))
 			elif self.line.find('CLIENT HELLO') >= 0:
@@ -99,6 +105,9 @@ class LogParser:
 			self.line =  self.__file.readline()
 		self.onFinish()
 	
+	def onConnectionClosed(self,timestamp,connection):
+		pass
+
 	def onClientHelloAnswer(self,hash):
 		pass
 
