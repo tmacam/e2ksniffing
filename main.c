@@ -1,7 +1,7 @@
 /**@file main.c
  * @brief main - Program, libs, and logging facilities setup and handling
  * @author Tiago Alves Macambira
- * @version $Id: main.c,v 1.27 2004-03-26 20:00:50 tmacam Exp $
+ * @version $Id: main.c,v 1.28 2004-03-26 20:54:29 tmacam Exp $
  * 
  * 
  * Based on sample code provided with libnids and copyright (c) 1999
@@ -33,6 +33,7 @@
 #include <grp.h>
 #include <time.h>
 
+#include <assert.h>
 
 #include "main.h"
 #include "e2k_utils.h"

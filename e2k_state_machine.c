@@ -1,7 +1,7 @@
 /**@file e2k_state_machine.c
  * @brief edonkey state-machine control function
  * @author Tiago Alves Macambira
- * @version $Id: e2k_state_machine.c,v 1.5 2004-03-26 20:52:41 tmacam Exp $
+ * @version $Id: e2k_state_machine.c,v 1.6 2004-03-26 20:54:29 tmacam Exp $
  * 
  * 
  * Based on sample code provided with libnids and copyright (c) 1999
@@ -45,10 +45,11 @@ inline int packet_is_sane(struct e2k_header_t* hdr)
 	        (hdr->proto == EDONKEY_PROTO_EMULE)  ) &&
 	     // Is not stupidly large 
 	     (hdr->packet_size < PACKET_MAXIMUM_SIZE)
-	    ){
-		return 1
+	    )
+	{
+		return 1;
 	} else {
-		return 0
+		return 0;
 	}
 }
 
