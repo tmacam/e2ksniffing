@@ -4,7 +4,7 @@
 
 @author: Tiago Alves Macambira
 
-$Id: LogParser.py,v 1.1 2004-04-05 02:27:43 tmacam Exp $
+$Id: LogParser.py,v 1.2 2004-04-05 02:51:06 tmacam Exp $
 
 O parser segue a mesma idéia de vários parser XML existentes: para cada
 mensagem do log, ele chama um método correspondente.
@@ -190,7 +190,8 @@ class MyLogParser(LogParser):
 		print "File Request Answer h[%s] n[%s]"% (hash, filename)
 
 	def onSendingCompressed(self,hash,start,length):
-		print "File Request Answer h[%s] n[%s]"% (hash, filename)
+		self.printPrefix()
+		print "Sending Compressed h[%s] n[%s]"% (hash, length)
 
 	def onSendingPart(self,hash,start,end):
 		self.printPrefix()
