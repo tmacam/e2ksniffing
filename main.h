@@ -1,7 +1,7 @@
 /**@file main.h
  * @brief main - Program, libs, and logging facilities setup and handling
  * @author Tiago Alves Macambira
- * @version $Id: main.h,v 1.5 2004-03-11 20:13:50 tmacam Exp $
+ * @version $Id: main.h,v 1.6 2004-03-21 01:14:30 tmacam Exp $
  * 
  * Based on sample code provided with libnids and copyright (c) 1999
  * Rafal Wojtczuk <nergal@avet.com.pl>. All rights reserved.
@@ -23,6 +23,9 @@
 #define BE_VERBOSE
 #define UNPRIV_USER "nobody"
 #define SYSLOG_REPORT_INTERVAL 60
+#define LOGROTATE_INTERVAL 15*60
+#define LOGROTATE_MAX_SIZE 10*1024*1024
+#define LOGROTATE_WITH_N_PACKETS 100;
 
 /* ********************************************************************  
  *  Global defines - debug
