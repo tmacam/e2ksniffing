@@ -1,7 +1,7 @@
 /**@file e2k_proto.c
  * @brief edonkey protocol handling funtions
  * @author Tiago Alves Macambira
- * @version $Id: e2k_proto.c,v 1.11 2004-08-30 21:23:28 tmacam Exp $
+ * @version $Id: e2k_proto.c,v 1.12 2004-08-31 22:53:51 tmacam Exp $
  * 
  * 
  * Based on sample code provided with libnids and copyright (c) 1999
@@ -46,6 +46,35 @@ static inline int hashes_are_equal(const struct e2k_hash_t* h1,
 static inline void copy_hash(struct e2k_hash_t* h1, struct e2k_hash_t* h2)
 {
 	memcpy(h1,h2,sizeof(struct e2k_hash_t));
+}
+
+
+
+
+/* ********************************************************************  
+ *  Private functions
+ *  
+ *  Data reassembly, de-compression, oportunistic caching of data and
+ *  bla-bla-bla functions
+ *  
+ * ******************************************************************** */
+
+static inline int e2k_proto_write_to_cache( const conn_state_t* connection,
+		const e2k_hash_t* hash, dword start_offset,
+		dword end_offset, const byte* data)
+{
+	/* Oportunistic caching of downloaded files support */
+	if ( (connection->download_writer != NULL) &&
+	     hashes_are_equal(&connection->download_hash,hash) )
+	{
+		res = writers_pool_writer_write(connection->download_writer,
+			start_offset,
+			end_offset,
+			data);
+		assert( res == WRITERS_POOL_OK );
+	}
+
+	return 0;
 }
 
 /* ********************************************************************  
@@ -218,7 +247,7 @@ inline void e2k_proto_handle_sending_part(struct e2k_packet_sending_part_t* pack
 
 	fprintf(stdout,"SENDING PART hash[");
 	fprintf_e2k_hash(stdout, &packet->hash);
-	fprintf(stdout,"] offset[%u,%u]",
+	fprintf(stdout,"] offset[%lu,%lu]",
 		packet->start_offset, packet->end_offset);
 
 	/* "Never trust the network"
@@ -303,11 +332,9 @@ inline void e2k_proto_handle_emule_data_compressed(struct e2k_packet_emule_data_
 	dword len_unzipped, start_pos;
 	e2k_zip_state_t* zip_state;
 
-	static long accumulated = 0;
-	
 	fprintf(stdout,"EMULE COMPRESSED DATA hash[");
 	fprintf_e2k_hash(stdout, &packet->hash);
-	fprintf(stdout,"] offset[%u,%u]",
+	fprintf(stdout,"] offset[%lu,%lu]",
 		packet->start_offset,packet->packed_len);
 
 	/* Compressed-data-related setup */
@@ -330,49 +357,33 @@ inline void e2k_proto_handle_emule_data_compressed(struct e2k_packet_emule_data_
 		/* Sanity check for future usage */
 		zip_state->start = packet->start_offset;
 		assert( res == E2K_ZIP_OK );
-		accumulated = 0;
 	}
-
-	accumulated += data_len;
-
-	fprintf(stdout, " data_len:%lu accumulated:%lu missing: %lu",
-			data_len, accumulated, 
-			packet->packed_len - accumulated );
-	//return; /* Ignoring everything bellow*/
 
 
 	res = e2k_zip_unzip(zip_state, &len_unzipped, data_len, 
 			&packet->data, 0 );
-	start_pos = zip_state->start + zip_state->total_unzipped -
-		len_unzipped;
-	fprintf(stdout, "ACC:%i DATA_LEN:%i MISSING:%6i LEN:%6lu START:%6lu avIN:%6u totIN:%6lu avOUT:%6u totOUT:%6lu  MSG:%s",
-			accumulated,
-			data_len,
-			packet->packed_len - zip_state->zs.total_in,
-			len_unzipped,
-			start_pos,
-			zip_state->zs.avail_in,
-			zip_state->zs.total_in,
-			zip_state->zs.avail_out,
-			zip_state->zs.total_out,
-			zip_state->zs.msg
-			);
+	start_pos = zip_state->start + zip_state->total_unzipped - len_unzipped;
 	if ( res == E2K_ZIP_ERR ){
-		fprintf (stdout, " *** FAILED [%i] *** ", res);
+		fprintf (stdout, " BOGUS *** FAILED *** (%i) : %s ",
+				res, zip_state->zs.msg);
 		zip_state->ignore = 1;
-		//e2k_zip_destroy(zip_state);
+		/* e2k_zip_destroy(zip_state); */
 		return;
-	}
+	} /*FIXME else if (res == E2K_ZIP_FINISHED) {
+	   *	e2k_zip_destroy(zip_state);
+	   * }
+	   */
+
+	fprintf(stdout, " offset_unzipped[%lu:%lu]",
+			start_pos, start_pos + len_unzipped );
 
 	/* Oportunistic caching of downloaded files support */
 	if ( (connection->download_writer != NULL) &&
 	     hashes_are_equal(&connection->download_hash,&packet->hash) )
 	{
-		start_pos = zip_state->start + zip_state->total_unzipped -
-			len_unzipped;
 		res = writers_pool_writer_write(connection->download_writer,
 			start_pos,
-			start_pos + len_unzipped , /*end is not inclusive*/
+			start_pos + len_unzipped, /*end is not inclusive*/
 			zip_state->unzipped_buf);
 		assert( res == WRITERS_POOL_OK );
 	}
