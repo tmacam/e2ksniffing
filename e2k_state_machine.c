@@ -1,7 +1,7 @@
 /**@file e2k_state_machine.c
  * @brief edonkey state-machine control function
  * @author Tiago Alves Macambira
- * @version $Id: e2k_state_machine.c,v 1.4 2004-03-26 20:00:49 tmacam Exp $
+ * @version $Id: e2k_state_machine.c,v 1.5 2004-03-26 20:52:41 tmacam Exp $
  * 
  * 
  * Based on sample code provided with libnids and copyright (c) 1999
@@ -52,6 +52,14 @@ inline int packet_is_sane(struct e2k_header_t* hdr)
 	}
 }
 
+/**@brief Marks this connection as one to be ignored */
+inline void ignore_this_connection(conn_state_t* conn_state)
+{
+	conn_state->client.state = ignore_connection;
+	conn_state->server.state = ignore_connection;
+	conn_state->ignore = 1;
+}
+
 /* ******************************************************************** 
  * Module's Public Functions
  * ******************************************************************* */
@@ -73,6 +81,8 @@ int handle_state_wait_full_header(int is_server,
 			    half_conn_state_t *state)
 {
 	struct e2k_header_t *hdr= NULL;
+	int is_good_packet = 0;
+
 	
 	/* So, the next full donkey packet is how many bytes away from the
 	 * start of halfstream->data ? */
@@ -85,34 +95,44 @@ int handle_state_wait_full_header(int is_server,
 		 * return w/ failure */
 		return HANDLE_STATE_NEED_MORE_DATA;
 	} else {
+		/* Enough data - Can we change state ? */
+
 		/* Read header data */
 		(void*)hdr = (void*)(halfstream->data + offset_shift);
 		/* Don't we perl lovers/haters adore verbose outputs? */
 		/*fprintf(stdout,"Header > %s proto=0x%02x packet_size=%i msg_id=0x%02x\n", state->connection->address_str, hdr->proto, hdr->packet_size, hdr->msg);*/
-		/* Enough data - change state */
-		if (state->blessed) {
+		
+		/* Verify this packet first... */
+		is_good_packet = 0;
+		if (packet_is_sane(hdr)){
+			if (state->blessed) {
+				is_good_packet = 1;
+			} else {
+				if ( hdr->msg == EDONKEY_MSG_HELLO ||
+			            hdr->msg == EDONKEY_MSG_HELLO_ANSWER)
+				{
+					state->blessed = 1;
+					is_good_packet = 1;
+				} else {
+					/* Althogh sane, this connection is
+					 * unblessed and it is not starting
+					 * with the standard HELLO handshake
+					 * pair. This is not a good connection.
+					 */
+					is_good_packet = 0;
+				}
+			}
+		}
+
+		/* ... and decide it's fate */
+		if (is_good_packet) {
 			state->state = wait_full_packet;
 			return HANDLE_STATE_SUCCESSFUL;
 		} else {
-			/* Unblessed. Does it seem like a edonkey conn.? */
-			if ( ( (hdr->msg == EDONKEY_MSG_HELLO) ||
-			       (hdr->msg == EDONKEY_MSG_HELLO_ANSWER) ) && 
-			     ( (hdr->proto == EDONKEY_PROTO_EDONKEY) ||
-			       (hdr->proto == EDONKEY_PROTO_EMULE) ) )
-			{
-				state->blessed = 1;
-				state->state = wait_full_packet;
-				return HANDLE_STATE_SUCCESSFUL;
-			} else {
-				/*We should ignore this bogus connection*/
-
-				fprintf( stdout,"%s proto=0x%02x msg_id=0x%02x packet_size=%i BOGUS\n", state->connection->address_str, hdr->proto, hdr->msg, hdr->packet_size);
-				conn_state_t* conn_state = state->connection;
-				conn_state->client.state = ignore_connection;
-				conn_state->server.state = ignore_connection;
-				conn_state->ignore = 1;
-				return HANDLE_STATE_NEED_MORE_DATA;
-			}
+			/* We should ignore this bogus connection */
+			fprintf( stdout,"%s %s proto=0x%02x msg_id=0x%02x packet_size=%i BOGUS\n", strtimestamp(), state->connection->address_str, hdr->proto, hdr->msg, hdr->packet_size);
+			ignore_this_connection(state->connection);
+			return HANDLE_STATE_NEED_MORE_DATA;
 		}
 	}
 }
