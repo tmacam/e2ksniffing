@@ -1,3 +1,9 @@
+#
+# Author: Tiago Alves Macambira
+# Version: $Id: Makefile,v 1.11 2004-08-20 21:38:10 tmacam Exp $
+#
+# See COPYING for license details
+
 
 FRAGMENTED_WRITER_DIR = ./FragmentSaver/
 
