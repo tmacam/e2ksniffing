@@ -1,7 +1,7 @@
 /**@file e2k_proto.c
  * @brief edonkey protocol handling funtions
  * @author Tiago Alves Macambira
- * @version $Id: e2k_proto.c,v 1.13 2004-08-31 23:38:03 tmacam Exp $
+ * @version $Id: e2k_proto.c,v 1.14 2004-09-01 01:05:40 tmacam Exp $
  * 
  * 
  * Based on sample code provided with libnids and copyright (c) 1999
@@ -245,8 +245,6 @@ inline void e2k_proto_handle_generic_hash(struct e2k_packet_generic_hash_t* pack
 
 inline void e2k_proto_handle_sending_part(struct e2k_packet_sending_part_t* packet, conn_state_t* connection)
 {
-	int res;
-
 	fprintf(stdout,"SENDING PART hash[");
 	fprintf_e2k_hash(stdout, &packet->hash);
 	fprintf(stdout,"] offset[%lu,%lu]",
@@ -266,16 +264,14 @@ inline void e2k_proto_handle_sending_part(struct e2k_packet_sending_part_t* pack
 		return;
 	}
 
+#ifdef P4P_SIGNATURE_SHORT_CIRCUIT
+	if (packet->start_offset > P4P_SIGNATURE_SHORT_CIRCUIT ){
+		/* Packet too far from hash zone to matter */
+		return;
+	}
+#endif /* P4P_SIGNATURE_SHORT_CIRCUIT */
+
 	/* Oportunistic caching of downloaded files support */
-/*        if ( (connection->download_writer != NULL) &&*/
-/*             hashes_are_equal(&connection->download_hash,&packet->hash) )*/
-/*        {*/
-/*                res = writers_pool_writer_write(connection->download_writer,*/
-/*                        packet->start_offset,*/
-/*                        packet->end_offset,*/
-/*                        &packet->data);*/
-/*                assert( res == WRITERS_POOL_OK );*/
-/*        }*/
 	e2k_proto_write_to_cache( connection, &packet->hash,
 			packet->start_offset, packet->end_offset,
 			&packet->data);
@@ -342,6 +338,13 @@ inline void e2k_proto_handle_emule_data_compressed(struct e2k_packet_emule_data_
 	fprintf(stdout,"] offset[%lu,%lu]",
 		packet->start_offset,packet->packed_len);
 
+#ifdef P4P_SIGNATURE_SHORT_CIRCUIT
+	if (packet->start_offset > P4P_SIGNATURE_SHORT_CIRCUIT ){
+		/* Packet too far from hash zone to matter */
+		return;
+	}
+#endif /* P4P_SIGNATURE_SHORT_CIRCUIT */
+
 	/* Compressed-data-related setup */
 	zip_state = &connection->zip_state;
 	assert(&connection->zip_state == &(connection->zip_state));
@@ -364,7 +367,6 @@ inline void e2k_proto_handle_emule_data_compressed(struct e2k_packet_emule_data_
 		assert( res == E2K_ZIP_OK );
 	}
 
-
 	res = e2k_zip_unzip(zip_state, &len_unzipped, data_len, 
 			&packet->data, 0 );
 	start_pos = zip_state->start + zip_state->total_unzipped - len_unzipped;
@@ -374,27 +376,20 @@ inline void e2k_proto_handle_emule_data_compressed(struct e2k_packet_emule_data_
 		zip_state->ignore = 1;
 		/* e2k_zip_destroy(zip_state); */
 		return;
-	} /*FIXME else if (res == E2K_ZIP_FINISHED) {
-	   *	e2k_zip_destroy(zip_state);
-	   * }
-	   */
+	}
 
 	fprintf(stdout, " offset_unzipped[%lu:%lu]",
 			start_pos, start_pos + len_unzipped );
 
 	/* Oportunistic caching of downloaded files support */
-/*        if ( (connection->download_writer != NULL) &&*/
-/*             hashes_are_equal(&connection->download_hash,&packet->hash) )*/
-/*        {*/
-/*                res = writers_pool_writer_write(connection->download_writer,*/
-/*                        start_pos,*/
-/*                        start_pos + len_unzipped, |+end is not inclusive+|*/
-/*                        zip_state->unzipped_buf);*/
-/*                assert( res == WRITERS_POOL_OK );*/
-/*        }*/
 	e2k_proto_write_to_cache(connection, &packet->hash, start_pos,
 			start_pos + len_unzipped, /*end is not inclusive*/
 			zip_state->unzipped_buf);
+
+	/* If we are done with this stream, destroy it*/
+ 	if (res == E2K_ZIP_FINISHED) {
+		e2k_zip_destroy(zip_state);
+	}
 	
 }
 
