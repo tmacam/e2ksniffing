@@ -1,7 +1,7 @@
 /**@file main.c
  * @brief main - Program, libs, and logging facilities setup and handling
  * @author Tiago Alves Macambira
- * @version $Id: main.c,v 1.21 2004-03-21 02:20:11 tmacam Exp $
+ * @version $Id: main.c,v 1.22 2004-03-21 04:22:28 tmacam Exp $
  * 
  * 
  * Based on sample code provided with libnids and copyright (c) 1999
@@ -295,7 +295,7 @@ void syslog_drops(void)
 		/* Eu não confio mais em nada! E chega de comentários
 		 * em inglês!*/
 		fprintf( stdout,
-			 " == Statistics: Droped Packets: %i, Active Connections: %i, Received Packtes: %i",
+			 " == Statistics: Droped Packets: %i, Active Connections: %i, Received Packtes: %i\n",
 			 stat.ps_drop,
 			n_connections,
 			stat.ps_recv);
