@@ -1,6 +1,6 @@
 /* 
  * @author Tiago Alves Macambira
- * @version $Id: main.c,v 1.15 2004-03-03 08:08:51 tmacam Exp $
+ * @version $Id: main.c,v 1.16 2004-03-04 18:36:11 tmacam Exp $
  * 
  * 
  * Based on sample code provided with libnids and copyright (c) 1999
@@ -19,19 +19,31 @@
 #include <stdio.h>
 #include <unistd.h>
 #include "nids.h"
+#include "pcap.h"
+#include <syslog.h>
 
 /*para strerror*/
 #include <errno.h>
 /*para drop_privilages*/
 #include <pwd.h>
 #include <grp.h>
+#include <time.h>
 
 
 #include "main.h"
 #include "e2k_defs.h"
 
 
+/* ********************************************************************  
+ *  Global defines - configuration 
+ * ******************************************************************** */
+
 #define UNPRIV_USER "nobody"
+#define SYSLOG_REPORT_INTERVAL 60
+
+/* ********************************************************************  
+ *  Global defines - error handling macros 
+ * ******************************************************************** */
 
 #define CHECK_IF_NULL(ptr) \
         do { if ( ptr == NULL ) { goto null_error; }}while(0)
@@ -41,6 +53,14 @@
  * ******************************************************************** */
 
 unsigned char e2ksniff_errbuf[256];
+
+pcap_t* pcap_descriptor = NULL;
+long int n_connections;
+time_t next_syslog_report_time = 0;
+int is_sniffing = 0;
+
+
+inline void syslog_drops(void);
 
 
 /* ********************************************************************  
@@ -511,6 +531,9 @@ inline void handle_tcp_close(struct tcp_stream *a_tcp, conn_state_t **conn_state
 	free(conn_state);
 	*conn_state_ptr=NULL;
 	/* connection was closed normally */
+
+	/* Statistics */
+	n_connections--;
 }
 
 inline void handle_tcp_data(struct tcp_stream *a_tcp, conn_state_t **conn_state_ptr)
@@ -579,6 +602,14 @@ inline void handle_tcp_establish(struct tcp_stream *a_tcp, conn_state_t **conn_s
 	conn_state->server.blessed = 0;
 
 	fprintf(stdout, "%s established\n", conn_state->address_str);
+
+	/* Statistics */
+	n_connections++;
+	if (time(NULL) > next_syslog_report_time){
+		syslog_drops();
+		next_syslog_report_time = time(NULL) + SYSLOG_REPORT_INTERVAL;
+	}
+
 }
 
 
@@ -612,10 +643,11 @@ void tcp_callback(struct tcp_stream *a_tcp, conn_state_t **conn_state_ptr)
  */
 void out_of_memory_callback()
 {
-	fprintf(stdout,"NDIS run out of memory!!!\n");
-	/*fsync(stdout);*/ 
+	fprintf(stdout," == NDIS run out of memory!!!\n");
+	fflush(stdout); 
 	fprintf(stderr,"NDIS run out of memory!!!\n");
-	/*fsync(stderr);*/
+	fflush(stderr);
+	syslog( nids_params.syslog_level, " == NIDS run out of memory!!!"); 
 	/* FIXME so... now what?! Exit, call a "save yourselves function?" */
 	exit(1);
 }
@@ -689,26 +721,55 @@ error:
 	return 1;
 }
 
+void syslog_drops(void)
+{
+	struct pcap_stat stat;
+
+	if (is_sniffing) {
+	       if (pcap_descriptor == NULL) {
+		       pcap_descriptor = nids_getdesc();
+	       }
+		pcap_stats( pcap_descriptor , &stat);
+		syslog( nids_params.syslog_level,
+			" == Statistics: Droped Packets: %i, Active Connections: %i",
+			stat.ps_drop,
+			n_connections);
+	}
+}
+
 /* ********************************************************************  
  * Main program
  * ******************************************************************** */
 
 int main(int argc, char* argv[])
 {
+	
+	/* Initial local setup - counters, syslog, etc */
+	n_connections = 0;
+	is_sniffing = 0;
+	next_syslog_report_time = time(NULL);
+	pcap_descriptor = NULL; /* setted @ syslog_drops() */
+	openlog("e2ksniff", 0, LOG_LOCAL0);
+	
 	/* Setup libNIDS - defaults */
 	nids_params.device = "any";
+	nids_params.pcap_filter = "port 4662";
 	nids_params.one_loop_less = 0; /* We depend of this semantic */
 	nids_params.scan_num_hosts = 0; /* Turn port-scan detection off */
 	nids_params.no_mem = out_of_memory_callback;
-	/* nids_params.n_hosts=1024; * FIXME value too small? */
+	nids_params.n_hosts=1024*16; /* FIXME value too small? */
+	nids_params.n_tcp_streams = 1024*256;
+	nids_params.sk_buff_size = 1024*32;
 
 	/* Load recorded trace-file or sniff the network?*/
 	if (argc > 1){
 		nids_params.device = NULL;
 		nids_params.filename = argv[1];
 		printf(" == Loading trace file: %s\n",nids_params.filename );
+		is_sniffing = 0;
 	} else {
 		printf(" == No tracefile given. Sniffing from the network.\n");
+		is_sniffing = 1;
 	}
 
 	/* Start libNIDS engine */
@@ -718,7 +779,7 @@ int main(int argc, char* argv[])
 	}
 
 	/*  DROP PRIVILEGES !!!!  */
-	if( (nids_params.device != NULL) && 
+	if( (is_sniffing) && 
 	    (drop_privilages(UNPRIV_USER) != 0) ){
 		fprintf( stderr, " == ERROR: Could not drop privileges: %s\n",
 			e2ksniff_errbuf);
