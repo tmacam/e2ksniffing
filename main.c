@@ -1,6 +1,6 @@
 /* 
  * @author Tiago Alves Macambira
- * @version $Id: main.c,v 1.9 2004-02-16 05:39:23 tmacam Exp $
+ * @version $Id: main.c,v 1.10 2004-02-18 05:01:17 tmacam Exp $
  * 
  * 
  * Based on sample code provided with libnids and copyright (c) 1999
@@ -51,41 +51,38 @@ const char *address_str(struct tuple4 addr)
 	return buf;
 }
 
-/**@brief Prints a MD4 hash
- *
- * This function will print the hex-coded version of a given MD4 hash along
- * with some extra "identification" strings and the address
- * 
- * @param func_name the name of the "function". Since this function was used
- * mainly for "debuging" or "verbose output", there was a need to know
- * where the printed hash came from, from which "function", hence "func_name".
- * The contents of this string will be printed on the begining of the line
- *
- * @param addr_tuple the client and server addresses that will be printed
- * along "func_name"
- *
- * @param e2k_hash the MD4 hash
- */
-void print_hash(char* func_name, char* address_str, struct e2k_hash_t* hash )
+unsigned char* hexstr (unsigned char *data, unsigned int len)
 {
-	byte* hash_data = hash->data; /* Saving 16 ptrs. indirections*/
-        printf("%s (%s) \tHash: '%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x'\n",
-		func_name, 
-		address_str,
-		hash_data[0], hash_data[1], hash_data[2], hash_data[3], 
-		hash_data[4], hash_data[5], hash_data[6], hash_data[7],
-		hash_data[8], hash_data[9], hash_data[10],hash_data[11],
-		hash_data[12],hash_data[13],hash_data[14],hash_data[15]);
+        unsigned char* result = NULL;
+        int i = 0;
+
+        /* hex of one  byte takes 2 chars. +1 for the ending '/0' */
+        result = (char*)calloc( (2*len + 1), sizeof(char));
+        if (result == NULL){
+                return result;
+        }
+	
+        for(i = 0; i < len; i++) {
+                sprintf(&result[2*i], "%02x", data[i]);
+        }
+
+        return result;
 }
 
-
+/**@brief Converts MD4 hash into a string
+ *
+ * This function will "convert" a MD4 hash into its hex-coded string.
+ * This string will be dynamic allocated - remember to free it later.
+ * 
+ * @param e2k_hash the MD4 hash
+ */
 unsigned char* asprintf_hash(struct e2k_hash_t* hash )
 {
 	byte* hash_data = hash->data; /* Saving 16 ptrs. indirections*/
 	unsigned char* result = NULL;
 	int ret = 0;
 
-	ret = asprintf(&result,"%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x",
+	ret = asprintf(&result,"%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x",
 		hash_data[0], hash_data[1], hash_data[2], hash_data[3], 
 		hash_data[4], hash_data[5], hash_data[6], hash_data[7],
 		hash_data[8], hash_data[9], hash_data[10],hash_data[11],
@@ -156,6 +153,20 @@ void handle_edonkey_packet(int is_server, char *pkt_data, char *address_str)
 					hash_str, 
 					sending_pkt->start_offset,
 					sending_pkt->end_offset);
+		} else if (hdr->msg == EDONKEY_MSG_FILE_STATUS ) {
+			struct e2k_packet_file_status_t *status_pkt = NULL;
+			char* bitmap_hex_str = NULL;
+			(void *)status_pkt = (void *)pkt_data;
+			hash_str=asprintf_hash(&status_pkt->hash);
+			bitmap_hex_str = hexstr( &status_pkt->bitmap,
+						(status_pkt->len+7)/8);
+			CHECK_IF_NULL(hash_str);
+			fprintf( stdout,
+				"FILE STATUS hash[%s] len=%i bitmap=0x[%s]",
+				hash_str, 
+				status_pkt->len,
+				bitmap_hex_str);
+			free(bitmap_hex_str);
 		}
 	/*    for emule extension messages */
 	} else if (hdr->proto == EDONKEY_PROTO_EMULE) {

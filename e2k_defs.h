@@ -1,7 +1,7 @@
 /**@file e2k_defs.h
  * @brief Common edonkey definitions
  * @author Tiago Alves Macambira
- * @version $Id: e2k_defs.h,v 1.6 2004-02-16 05:39:23 tmacam Exp $
+ * @version $Id: e2k_defs.h,v 1.7 2004-02-18 05:01:17 tmacam Exp $
  * 
  */
 
@@ -14,6 +14,7 @@
 #define EDONKEY_MSG_FILE_REQUEST 0x58
 #define EDONKEY_MSG_REQUEST_PARTS 0x47
 #define EDONKEY_MSG_SENDING_PART 0x46
+#define EDONKEY_MSG_FILE_STATUS 0x50 
 
 #define EMULE_MSG_DATA_COMPRESSED 0x40
 
@@ -65,3 +66,12 @@ struct e2k_packet_emule_data_compressed_t{
 	dword start_offset;
 	dword packed_len;
 }__attribute__ ((packed));
+
+/*<HASH><word len><char[(len+7)/8] data>*/
+struct e2k_packet_file_status_t {
+	struct e2k_header_t header;
+	struct e2k_hash_t hash;
+	word len;
+	byte bitmap; /*assume bitmap as an array*/
+}__attribute__ ((packed));
+
