@@ -1,6 +1,6 @@
 /* 
  * @author Tiago Alves Macambira
- * @version $Id: main.c,v 1.7 2004-02-15 04:18:17 tmacam Exp $
+ * @version $Id: main.c,v 1.8 2004-02-16 04:58:51 tmacam Exp $
  * 
  * 
  * Based on sample code provided with libnids and copyright (c) 1999
@@ -23,6 +23,9 @@
 #include "main.h"
 #include "e2k_defs.h"
 
+
+#define CHECK_IF_NULL(ptr) \
+        do { if ( ptr == NULL ) { goto null_error; }}while(0)
 
 /* ********************************************************************  
  *  Utility functions
@@ -76,6 +79,24 @@ void print_hash(char* func_name, char* address_str, struct e2k_hash_t* hash )
 }
 
 
+unsigned char* asprintf_hash(struct e2k_hash_t* hash )
+{
+	byte* hash_data = hash->data; /* Saving 16 ptrs. indirections*/
+	unsigned char* result = NULL;
+	int ret = 0;
+
+	ret = asprintf(&result,"%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x",
+		hash_data[0], hash_data[1], hash_data[2], hash_data[3], 
+		hash_data[4], hash_data[5], hash_data[6], hash_data[7],
+		hash_data[8], hash_data[9], hash_data[10],hash_data[11],
+		hash_data[12],hash_data[13],hash_data[14],hash_data[15]);
+	if (ret < 0){
+		return NULL;
+	} else {
+		return result;
+	}
+
+}
  
 /* ********************************************************************  
  * edonkey protocol handling funtions
@@ -91,24 +112,65 @@ void print_hash(char* func_name, char* address_str, struct e2k_hash_t* hash )
 void handle_edonkey_packet(int is_server, char *pkt_data, char *address_str)
 {
 	struct e2k_header_t *hdr= NULL;
-	struct e2k_packet_file_request_t *file_req = NULL;
 	char *direction = NULL;
+	char *hash_str = NULL;
 	
 	(void*)hdr = (void*)pkt_data;
-	(void *)file_req = (void *)pkt_data;
 	
-	if ( hdr->msg == EDONKEY_FILE_REQUEST_OPCODE){
-		print_hash("File request from",address_str, &(file_req->hash));
-	} else if ( hdr->msg == EDONKEY_REQUEST_PARTS_OPCODE ){
-		print_hash("Request parts from",address_str, &(file_req->hash));
-	};
-/*#ifdef BE_VERBOSE*/
+	/* Print basic log line */
 	direction = is_server ? "[S]" : "[C]";
 	fprintf( stdout,
-		 "E2K pkt> %s%s proto=0x%02x size=%i msg_id=0x%02x\n",
-		 address_str,direction, hdr->proto,
-		 hdr->packet_size, hdr->msg);
-/*#endif*/
+		 "%s%s proto=0x%02x msg_id=0x%02x size=%i ",
+		 address_str, direction, hdr->proto, hdr->msg,hdr->packet_size);
+
+	/* Print extra information for some message types */
+	/*    for classic edonkey protocol messages */
+	if (hdr->proto == EDONKEY_PROTO_EDONKEY) {
+		if (hdr->msg == EDONKEY_MSG_FILE_REQUEST ) {
+			struct e2k_packet_file_request_t *file_req = NULL;
+			(void *)file_req = (void *)pkt_data;
+			hash_str=asprintf_hash(&file_req->hash);
+			CHECK_IF_NULL(hash_str);
+			fprintf(stdout,"FILE REQUEST hash[%s]",hash_str);
+		} else if (hdr->msg == EDONKEY_MSG_REQUEST_PARTS ) {
+			struct e2k_packet_file_request_t *file_req = NULL;
+			(void *)file_req = (void *)pkt_data;
+			hash_str=asprintf_hash(&file_req->hash);
+			CHECK_IF_NULL(hash_str);
+			fprintf(stdout,"REQUEST PARTS hash[%s]",hash_str);
+		} else if (hdr->msg == EDONKEY_MSG_SENDING_PART ) {
+			struct e2k_packet_sending_part_t *sending_pkt = NULL;
+			(void *)sending_pkt = (void *)pkt_data;
+			hash_str=asprintf_hash(&sending_pkt->hash);
+			CHECK_IF_NULL(hash_str);
+			fprintf(stdout,"SENDING PART hash[%s] offset[%i,%i]",
+					hash_str, 
+					sending_pkt->start_offset,
+					sending_pkt->end_offset);
+		}
+	/*    for emule extension messages */
+	} else if (hdr->proto == EDONKEY_PROTO_EMULE) {
+		if (hdr->msg == EMULE_MSG_DATA_COMPRESSED) {
+			struct e2k_packet_emule_data_compressed_t *emuledc_pkt = NULL;
+			(void *)emuledc_pkt = (void *)pkt_data;
+			hash_str=asprintf_hash(&emuledc_pkt->hash);
+			CHECK_IF_NULL(hash_str);
+			fprintf( stdout,
+				"EMULE COMPRESSED DATA hash[%s] offset_start=%i len=%i",
+				hash_str, 
+				emuledc_pkt->start_offset,
+				emuledc_pkt->packed_len);
+		}
+	}
+
+null_error:
+	/* Free allocated resources */
+	if (hash_str != NULL){
+		free(hash_str);
+	}
+
+	/* Finish the log line */
+	fprintf( stdout, "\n");
 	
 }
 
