@@ -4,7 +4,7 @@
 
 @author: Tiago Alves Macambira
 
-$Id: LogParser.py,v 1.4 2004-04-05 04:53:45 tmacam Exp $
+$Id: LogParser.py,v 1.5 2004-04-05 05:46:26 tmacam Exp $
 
 O parser segue a mesma idéia de vários parser XML existentes: para cada
 mensagem do log, ele chama um método correspondente.
@@ -40,7 +40,7 @@ class LogParser:
 			sys.stderr.write("Lendo da STDIN")
 	
 	def __compileRegExes(self):
-		self.__regexp['CLIENT HELLO']=re.compile(r'CLIENT HELLO .* client_hash\[(?P<hash>\w+)\]')
+		self.__regexp['CLIENT HELLO']=re.compile(r'CLIENT HELLO .*\bclient_hash\[(?P<hash>\w+)\]')
 		self.__regexp['SENDING PART']=re.compile(r'SENDING PART hash\[(?P<hash>\w+)\] offset\[(?P<offset_inicial>\d+),(?P<offset_final>\d+)\]')
 		self.__regexp['EMULE COMPRESSED DATA:1']=re.compile(r'EMULE COMPRESSED DATA hash\[(?P<hash>\w+)\] offset_start=(?P<offset_inicial>\d+) len=(?P<offset_compressed_length>\d+)')
 		self.__regexp['EMULE COMPRESSED DATA:2']=re.compile(r'EMULE COMPRESSED DATA hash\[(?P<hash>\w+)\] offset\[(?P<offset_inicial>\d+),(?P<offset_compressed_length>\d+)\]')
@@ -80,6 +80,7 @@ class LogParser:
 			return
 		except AttributeError, e:
 			self.onError(self.line,e)
+			raise
 		# Ops! It didn't match! Fallback
 		self.onUnknown(self.line)
 			
@@ -89,6 +90,7 @@ class LogParser:
 		calling the onTag-messages"""
 		self.line = self.__file.readline()
 		while self.line:
+			self.line = self.line.rstrip()
 			self.__processLine()
 			# Reads the next line
 			self.line =  self.__file.readline()
