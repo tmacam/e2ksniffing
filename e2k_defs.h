@@ -1,8 +1,7 @@
-/* 
+/**@file e2k_defs.h
+ * @brief Common edonkey definitions
  * @author Tiago Alves Macambira
- * @version $Id: e2k_defs.h,v 1.3 2004-01-21 06:27:36 tmacam Exp $
- * 
- * 
+ * @version $Id: e2k_defs.h,v 1.4 2004-02-12 13:42:39 tmacam Exp $
  * 
  */
 
