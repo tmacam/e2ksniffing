@@ -1,7 +1,7 @@
 /**@file e2k_state_machine.c
  * @brief edonkey state-machine control function
  * @author Tiago Alves Macambira
- * @version $Id: e2k_state_machine.c,v 1.2 2004-03-21 20:24:09 tmacam Exp $
+ * @version $Id: e2k_state_machine.c,v 1.3 2004-03-24 20:12:36 tmacam Exp $
  * 
  * 
  * Based on sample code provided with libnids and copyright (c) 1999
@@ -16,6 +16,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <assert.h>
 #include "nids.h"
 
 #include "main.h"
@@ -55,12 +56,10 @@ int handle_state_wait_full_header(int is_server,
 		 * return w/ failure */
 		return HANDLE_STATE_NEED_MORE_DATA;
 	} else {
-#ifdef BE_VERBOSE
 		/* Read header data */
 		(void*)hdr = (void*)(halfstream->data + offset_shift);
 		/* Don't we perl lovers/haters adore verbose outputs? */
 		/*fprintf(stdout,"Header > %s proto=0x%02x packet_size=%i msg_id=0x%02x\n", state->connection->address_str, hdr->proto, hdr->packet_size, hdr->msg);*/
-#endif
 		/* Enough data - change state */
 		if (state->blessed) {
 			state->state = wait_full_packet;
@@ -119,6 +118,8 @@ int handle_state_wait_full_packet( int is_server,
 		/* Since we are done with this packet,
 		 * let's wait for the next packet header */
 		state->state= wait_full_header;
+		/* FIXME */
+		assert(state->next_packet_offset < following_packet_offset);
 		state->next_packet_offset = following_packet_offset;
 		return HANDLE_STATE_SUCCESSFUL;
 	} else {
