@@ -11,10 +11,11 @@ Ao final de sua execução teremos os seguintes arquivos:
 session.{bdb,gdb,db}
 hash.{bdb,gdbm,db}
 
-$Id: FirstPass.py,v 1.5 2004-04-05 03:15:34 tmacam Exp $
+$Id: FirstPass.py,v 1.6 2004-04-05 04:39:14 tmacam Exp $
 """
 
 import sys
+from cPickle import dump
 import LogParser
 import shelve
 
@@ -22,6 +23,8 @@ class FirstPass(LogParser.LogParser):
 	"""Runing a file into this parser will populate 2 dictionaries:
 	    - sessions, with the format:
 	    	session[addr] -> { 'user_hash': str,
+				   'user_client': str,
+				   'user_server': str,
 				   'ts_begin'int,
 				   'ts_end': int,
 				   'hashes_bytes' :{str hash: int}}
@@ -47,7 +50,7 @@ class FirstPass(LogParser.LogParser):
 	NOTICE: we are using the tuple4/tcp endpoints's addresses as session
 	identifier.
 	"""
-	def __init__(self,sessions={},hashes={},filename=None):
+	def __init__(self,sessions,hashes,filename=None):
 		"""Session and hashes should be dictionary-like structures."""
 		# Base class initialization
 		LogParser.LogParser.__init__(self,filename)
@@ -70,9 +73,10 @@ class FirstPass(LogParser.LogParser):
 
 	def updateSessionByteHit(self,hash,length):
 		"""Update the ByteHit of the current hash in the current
-		session and in the hashid's.
+		session and in the hashid's. Also link the session's
+		client_hash either user_client or user_server
 		"""
-		ts,addr = self.getPrefix()
+		ts,addr,cs = self.getPrefix()
 		self.updateSessionTimestamps(addr,ts)
 		# Updates session's byte hit
 		if not self.sessions[addr]['hashes_bytes'].has_key(hash):
@@ -84,13 +88,50 @@ class FirstPass(LogParser.LogParser):
 			self.hashes[hash] = { 'names':[], 'bytes': length}
 		else:
 			self.hashes[hash]['bytes'] += length
+		# Links client_hash to the right user_<hash>
+		# See... connections can be started in both directions,
+		# so we gotta figure who is really getting the data
+		if self.sessions[addr].has_key('user_server'):
+			# Link the stuff
+			if cs == "S":
+				# Server is receiving a data/response message, so...
+				self.sessions[addr]['user_hash'] = \
+					self.sessions[addr]['user_server'] 
+					
+			else:
+				# the client is the one receiving the data...
+				self.sessions[addr]['user_hash'] = \
+					self.sessions[addr]['user_client'] 
+			# remove these unneeded keys
+			try:
+				del self.sessions[addr]['user_client']
+				del self.sessions[addr]['user_server']
+			except:
+				# Go figure what can happen...
+				pass
+			
+
+			
 
 		
 	
 	def onClientHello(self,hash):
-		ts,addr = self.getPrefix()
+		"""Registers the ClientHash of the Client-Peer in the
+		session. It will later be (possibly) associeated with
+		the session's client_hash.
+		"""
+		ts,addr,cs = self.getPrefix()
 		self.updateSessionTimestamps(addr,ts)
-		self.sessions[addr]['user_hash']=hash
+		self.sessions[addr]['user_client']=hash
+	
+	def onClientHello(self,hash):
+		"""Registers the ClientHash of the Servent-Peer in the
+		session. It will later be (possibly) associeated with
+		the session's client_hash.
+		"""
+		ts,addr,cs = self.getPrefix()
+		self.updateSessionTimestamps(addr,ts)
+		self.sessions[addr]['user_server']=hash
 
 	def onSendingCompressed(self,hash,start,length):
 		self.updateSessionByteHit(hash,length)
@@ -112,13 +153,15 @@ class FirstPass(LogParser.LogParser):
 
 
 if __name__ == '__main__':
-	sessions=shelve.open('sessions.shelve')
-	hashes=shelve.open('hashes.shelve')
+	sessions={}	#shelve.open('sessions.shelve')
+	hashes={}	#shelve.open('hashes.shelve')
 	parser=FirstPass(sessions,hashes)
 	try:
 		parser.parse()
 	finally:
 		print parser.line
-		sessions.close()
-		hashes.close()
+		dump(parser.sessions, open('sessions.pickle','w'))
+		dump(parser.hashes, open('hashes.pickle','w'))
+		#parser.sessions.close()
+		#parser.hashes.close()
 
