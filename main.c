@@ -1,7 +1,7 @@
 /**@file main.c
  * @brief main - Program, libs, and logging facilities setup and handling
  * @author Tiago Alves Macambira
- * @version $Id: main.c,v 1.25 2004-03-22 02:13:38 tmacam Exp $
+ * @version $Id: main.c,v 1.26 2004-03-25 21:39:05 tmacam Exp $
  * 
  * 
  * Based on sample code provided with libnids and copyright (c) 1999
@@ -92,10 +92,12 @@ inline void handle_tcp_data(struct tcp_stream *a_tcp, conn_state_t **conn_state_
 
 	/*Should we process this TCP connection? */
 	if (conn_state->ignore){
+		/* NO! Trash it! */
 		fprintf( stdout,
 			 "%s %s ignoring\n",
 			 strtimestamp(), conn_state->address_str);
 		handle_tcp_close(a_tcp,conn_state_ptr);
+		return; /* There's nothing else to do here */
 	}
 
 	/* So, where is this new data comming from? */
