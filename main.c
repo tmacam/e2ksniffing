@@ -1,7 +1,7 @@
 /**@file main.c
  * @brief main - Program, libs, and logging facilities setup and handling
  * @author Tiago Alves Macambira
- * @version $Id: main.c,v 1.30 2004-08-25 23:26:06 tmacam Exp $
+ * @version $Id: main.c,v 1.31 2004-08-30 21:24:17 tmacam Exp $
  * 
  * 
  * Based on sample code provided with libnids and copyright (c) 1999
@@ -33,6 +33,7 @@
 #include <grp.h>
 #include <time.h>
 #include <strings.h>
+#include <stdlib.h>
 
 #include <assert.h>
 
@@ -325,14 +326,14 @@ void syslog_drops(void)
 	       }
 		pcap_stats( pcap_descriptor , &stat);
 		syslog( nids_params.syslog_level,
-			" == Statistics: Droped Packets: %i, Active Connections: %i, Received Packtes: %i",
+			" == Statistics: Droped Packets: %i, Active Connections: %lu, Received Packtes: %i",
 			stat.ps_drop,
 			n_active_connections,
 			stat.ps_recv);
 		/* Eu não confio mais em nada! E chega de comentários
 		 * em inglês!*/
 		fprintf( stdout,
-			 " == Statistics: Droped Packets: %i, Active Connections: %i, Received Packtes: %i\n",
+			 " == Statistics: Droped Packets: %i, Active Connections: %lu, Received Packtes: %i\n",
 			 stat.ps_drop,
 			n_active_connections,
 			stat.ps_recv);
