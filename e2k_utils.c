@@ -1,7 +1,7 @@
 /**@file e2k_utils.c
  * @brief Utility functions
  * @author Tiago Alves Macambira
- * @version $Id: e2k_utils.c,v 1.2 2004-03-15 03:24:03 tmacam Exp $
+ * @version $Id: e2k_utils.c,v 1.3 2004-03-21 01:59:23 tmacam Exp $
  * 
  * 
  * Based on sample code provided with libnids and copyright (c) 1999
@@ -68,6 +68,17 @@ unsigned char* asprintf_hash(struct e2k_hash_t* hash )
 		return result;
 	}
 
+}
+
+unsigned char* strtimestamp()
+{
+	static unsigned char timestamp[25];
+	time_t now;
+
+	time(&now);
+	strftime(timestamp,24,"%s",localtime(&now));
+
+	return timestamp;
 }
 
 int fprintf_e2k_string(FILE* stream, struct e2k_string_t* netstring)

@@ -1,7 +1,7 @@
 /**@file main.c
  * @brief main - Program, libs, and logging facilities setup and handling
  * @author Tiago Alves Macambira
- * @version $Id: main.c,v 1.19 2004-03-21 01:14:30 tmacam Exp $
+ * @version $Id: main.c,v 1.20 2004-03-21 01:59:23 tmacam Exp $
  * 
  * 
  * Based on sample code provided with libnids and copyright (c) 1999
@@ -73,7 +73,7 @@ inline void handle_tcp_close(struct tcp_stream *a_tcp, conn_state_t **conn_state
 	a_tcp->client.collect = 0;
 	a_tcp->server.collect = 0; 
 	
-	fprintf(stdout, "%s closed\n", conn_state->address_str);
+	fprintf(stdout,"%s %s closed\n",strtimestamp(),conn_state->address_str);
 	/* free conn. related data */
 	free(conn_state);
 	*conn_state_ptr=NULL;
@@ -92,7 +92,9 @@ inline void handle_tcp_data(struct tcp_stream *a_tcp, conn_state_t **conn_state_
 
 	/*Should we process this TCP connection? */
 	if (conn_state->ignore){
-		fprintf( stdout, "%s ignoring\n", conn_state->address_str);
+		fprintf( stdout,
+			 "%s %s ignoring\n",
+			 strtimestamp(), conn_state->address_str);
 		handle_tcp_close(a_tcp,conn_state_ptr);
 	}
 
@@ -154,7 +156,9 @@ inline void handle_tcp_establish(struct tcp_stream *a_tcp, conn_state_t **conn_s
 	conn_state->server.connection = conn_state;
 	conn_state->server.blessed = 0;
 
-	fprintf(stdout, "%s established\n", conn_state->address_str);
+	fprintf( stdout,
+		 "%s %s established\n",
+		 strtimestamp(),conn_state->address_str);
 
 	/* Statistics */
 	n_connections++;

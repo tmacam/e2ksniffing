@@ -1,8 +1,8 @@
 all:main
 
 LIBS = -lnids -lpcap
-CC=gcc -O3 -march=athlon -Winline 
-#CC=gcc -ggdb
+#CC=gcc -O3 -march=athlon -Winline 
+CC=gcc -ggdb
 
 OBJS=main.o e2k_utils.o  e2k_proto.o e2k_state_machine.o
 

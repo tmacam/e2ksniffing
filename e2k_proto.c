@@ -1,7 +1,7 @@
 /**@file e2k_proto.c
  * @brief edonkey protocol handling funtions
  * @author Tiago Alves Macambira
- * @version $Id: e2k_proto.c,v 1.2 2004-03-15 03:24:03 tmacam Exp $
+ * @version $Id: e2k_proto.c,v 1.3 2004-03-21 01:59:23 tmacam Exp $
  * 
  * 
  * Based on sample code provided with libnids and copyright (c) 1999
@@ -15,11 +15,16 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
 #include "e2k_defs.h"
 #include "e2k_utils.h"
 
 #include "e2k_proto.h"
+
+/* ********************************************************************  
+ *  Global variables - to avoid alloc and dealloc of local vars.
+ * ******************************************************************** */
 
 /* ********************************************************************  
  *  Global defines - error handling macros 
@@ -244,7 +249,7 @@ void handle_edonkey_packet(int is_server, char *pkt_data, char *address_str)
 	/* Print basic log line */
 	direction = is_server ? "[S]" : "[C]";
 	fprintf( stdout,
-		 "%s%s proto=0x%02x msg_id=0x%02x size=%i ",
+		 "%s %s%s proto=0x%02x msg_id=0x%02x size=%i ", strtimestamp(),
 		 address_str, direction, hdr->proto, hdr->msg,hdr->packet_size);
 
 	/* Print extra information for some message types */

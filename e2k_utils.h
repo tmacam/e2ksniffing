@@ -1,7 +1,7 @@
 /**@file e2k_utils.h
  * @brief Utility functions
  * @author Tiago Alves Macambira
- * @version $Id: e2k_utils.h,v 1.2 2004-03-15 03:24:03 tmacam Exp $
+ * @version $Id: e2k_utils.h,v 1.3 2004-03-21 01:59:23 tmacam Exp $
  * 
  * 
  * Based on sample code provided with libnids and copyright (c) 1999
@@ -51,6 +51,14 @@ unsigned char* hexstr (unsigned char *data, unsigned int len);
  */
 unsigned char* asprintf_hash(struct e2k_hash_t* hash );
 
+/**@brief return a timestamp string
+ *
+ * @warning The return value points to a statically allocated
+ * string which might be overwritten by subsequent calls to this function.
+ * 
+ * @return a static allocated pointer to a string with the current timestamp
+ */
+unsigned char * strtimestamp();
 
 inline int fprintf_e2k_string(FILE* stream, struct e2k_string_t* netstring);
 inline int fprintf_e2k_hash(FILE* stream, struct e2k_hash_t* hash );
