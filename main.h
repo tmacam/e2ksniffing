@@ -1,7 +1,7 @@
 /**@file main.h
  * @brief main - Program, libs, and logging facilities setup and handling
  * @author Tiago Alves Macambira
- * @version $Id: main.h,v 1.8 2004-04-01 22:03:59 tmacam Exp $
+ * @version $Id: main.h,v 1.9 2004-04-01 22:29:28 tmacam Exp $
  * 
  * Based on sample code provided with libnids and copyright (c) 1999
  * Rafal Wojtczuk <nergal@avet.com.pl>. All rights reserved.
@@ -28,6 +28,9 @@
 #define LOGROTATE_WITH_N_PACKETS 100;
 
 #define UDP_NICE_INCREMENT 10
+
+/** The size of the biggest packet we are allowed to process */
+#define PACKET_MAXIMUM_SIZE 36000
 
 /* ********************************************************************  
  *  Global defines - debug

@@ -1,7 +1,7 @@
 /**@file e2k_defs.h
  * @brief Common edonkey definitions
  * @author Tiago Alves Macambira
- * @version $Id: e2k_defs.h,v 1.15 2004-04-01 22:03:59 tmacam Exp $
+ * @version $Id: e2k_defs.h,v 1.16 2004-04-01 22:29:28 tmacam Exp $
  *
  * Some parts of this file are from ethereal's packet-edonkey.{c,h}, and
  * thus covered by it's own licence (GPL compat)
@@ -18,9 +18,6 @@
 /* ********************************************************************  
  * Constants definition
  * ******************************************************************** */
-
-/** The size of the biggest packet we are allowed to process */
-#define PACKET_MAXIMUM_SIZE 36000
 
 /** The size of <uchar proto><dword pkt_len><uchar msg_type>*/
 #define EDONKEY_HEADER_SIZE 6
