@@ -2,8 +2,8 @@ Programming Task
 * Verificar se uma conexão é realmente uma conxão edonkey
 * Qual o opcode para ver a posição na fila?
 * Está tendo perda de pacotes?
-* Drop privileges
 * Split main.c
+* -O3 dá pau?
 
 Implantação da Arquitetura
 * Mudar o diretório padrão de logs para o /logspool

@@ -1,6 +1,6 @@
 /* 
  * @author Tiago Alves Macambira
- * @version $Id: main.c,v 1.11 2004-03-02 07:57:21 tmacam Exp $
+ * @version $Id: main.c,v 1.12 2004-03-03 04:42:27 tmacam Exp $
  * 
  * 
  * Based on sample code provided with libnids and copyright (c) 1999
@@ -20,12 +20,28 @@
 #include <unistd.h>
 #include "nids.h"
 
+/*para strerror*/
+#include <errno.h>
+/*para drop_privilages*/
+#include <pwd.h>
+#include <grp.h>
+
+
 #include "main.h"
 #include "e2k_defs.h"
 
 
+#define UNPRIV_USER "nobody"
+
 #define CHECK_IF_NULL(ptr) \
         do { if ( ptr == NULL ) { goto null_error; }}while(0)
+
+/* ********************************************************************  
+ *  Global variables
+ * ******************************************************************** */
+
+unsigned char e2ksniff_errbuf[256];
+
 
 /* ********************************************************************  
  *  Utility functions
@@ -551,6 +567,75 @@ void out_of_memory_callback()
 	exit(1);
 }
 
+/**@brief Drop root privilages 
+ *
+ * This function will drop any superuser privilage of the current process by
+ * setuid-ing into unpriv_user.
+ *
+ * If, by some unknown reason, unpriv_user is
+ * also a superuser, the function will return with error.
+ *
+ * @param unpriv_user the name of the unprivileged user the process will
+ * impersonate.
+ *
+ * @return 0 in case of success. A non-zero value in case of error.
+ */
+int drop_privilages(const unsigned char* unpriv_user)
+{
+	struct passwd *pw = NULL;
+
+	/*FIXME clen the env? */
+	
+	/* Is there any privileges to be dropped? Am I a superuser? */
+	if (getuid() == 0) {
+		/* Get unpriv_user's UID and GID */
+		if ( (pw = getpwnam (unpriv_user)) == NULL ){
+			snprintf( e2ksniff_errbuf,
+				  sizeof(e2ksniff_errbuf) -1,
+				  "There is no user '%s'",
+				  unpriv_user);
+			goto error;
+		} 
+		/* Change GID */
+		if ( setgid(pw->pw_gid) != 0 ){
+			snprintf( e2ksniff_errbuf,
+				 sizeof(e2ksniff_errbuf) -1,
+				 "Cannot change GID: %s",
+				 strerror(errno) );
+			goto error;
+		}
+		/* Clean the supplementary group ID list*/
+		if ( setgroups(0,NULL) != 0 ) {
+			snprintf( e2ksniff_errbuf,
+				  sizeof(e2ksniff_errbuf) -1,
+				  "Could not clen the supplementary group IDs list");
+			goto error;
+			
+		}
+		/* Finally, change the UID*/
+		if ( setuid(pw->pw_uid) != 0 ){
+			snprintf( e2ksniff_errbuf,
+				 sizeof(e2ksniff_errbuf) -1,
+				 "Cannot change UID: %s",
+				 strerror(errno) );
+			goto error;
+		}		
+		/* Am I still a superuser ? 
+		 * unpriv_user must be a superuser then. */
+		if ( (getuid() == 0) || (getgid() == 0) ) {
+			snprintf( e2ksniff_errbuf,
+				  sizeof(e2ksniff_errbuf) -1,
+				  "%s is a superuser - can't drop privileges by impersonating a superuser: is nonsense, dude!", unpriv_user);
+			goto error;
+		}
+	} 
+	
+	/* Success */
+	return 0;
+error:
+	return 1;
+}
+
 /* ********************************************************************  
  * Main program
  * ******************************************************************** */
@@ -575,15 +660,21 @@ int main(int argc, char* argv[])
 
 	/* Start libNIDS engine */
 	if (!nids_init()) {
-		fprintf(stderr, "ERROR: libNIDS error: %s\n", nids_errbuf);
+		fprintf(stderr, " == ERROR: libNIDS error: %s\n", nids_errbuf);
 		exit(1);
 	}
 
-	/* FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME 
-	 * 
-	 * DROP PRIVILEGES !!!! 
-	 *
-	 * FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME   */
+	/*  DROP PRIVILEGES !!!!  */
+	if( (nids_params.device != NULL) && 
+	    (drop_privilages(UNPRIV_USER) != 0) ){
+		fprintf( stderr, " == ERROR: Could not drop privileges: %s\n",
+			e2ksniff_errbuf);
+		exit(1);
+	} else {
+		fprintf( stdout,
+			 " == Droped privilages. Impersonating '%s'\n",
+			 UNPRIV_USER);
+	}
 
 	nids_register_tcp(tcp_callback);
 	
