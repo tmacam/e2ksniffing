@@ -1,6 +1,11 @@
 Programming Task
+* analisar o ListenSocket.cpp do amule para ver como ele remove 
+  pacotes doidos/insanos...
+* Verificar como funciona o SourceExchange
 * verificar se setar collect=0 nos dois lados suprime NIDS_CLOSE
 * proteção contra pacotes enoooooooooormes
 * make test - sizeof float == 4, sizeof * = esperado?
+* erros dentro da metalist
+* rodar essa porra no valgrind
 
 Implantação da Arquitetura
