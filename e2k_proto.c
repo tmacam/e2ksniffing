@@ -1,7 +1,7 @@
 /**@file e2k_proto.c
  * @brief edonkey protocol handling funtions
  * @author Tiago Alves Macambira
- * @version $Id: e2k_proto.c,v 1.12 2004-08-31 22:53:51 tmacam Exp $
+ * @version $Id: e2k_proto.c,v 1.13 2004-08-31 23:38:03 tmacam Exp $
  * 
  * 
  * Based on sample code provided with libnids and copyright (c) 1999
@@ -60,9 +60,11 @@ static inline void copy_hash(struct e2k_hash_t* h1, struct e2k_hash_t* h2)
  * ******************************************************************** */
 
 static inline int e2k_proto_write_to_cache( const conn_state_t* connection,
-		const e2k_hash_t* hash, dword start_offset,
+		const struct e2k_hash_t* hash, dword start_offset,
 		dword end_offset, const byte* data)
 {
+	int res;
+
 	/* Oportunistic caching of downloaded files support */
 	if ( (connection->download_writer != NULL) &&
 	     hashes_are_equal(&connection->download_hash,hash) )
@@ -252,7 +254,7 @@ inline void e2k_proto_handle_sending_part(struct e2k_packet_sending_part_t* pack
 
 	/* "Never trust the network"
 	 *
-	 *  - don't try to get more data then what is * really there
+	 *  - don't try to get more data then what is really there
 	 */
 	if ( packet->end_offset - packet->start_offset !=
 		packet->header.packet_size - SENDING_DATA_HEADER_LEN )
@@ -265,15 +267,18 @@ inline void e2k_proto_handle_sending_part(struct e2k_packet_sending_part_t* pack
 	}
 
 	/* Oportunistic caching of downloaded files support */
-	if ( (connection->download_writer != NULL) &&
-	     hashes_are_equal(&connection->download_hash,&packet->hash) )
-	{
-		res = writers_pool_writer_write(connection->download_writer,
-			packet->start_offset,
-			packet->end_offset,
+/*        if ( (connection->download_writer != NULL) &&*/
+/*             hashes_are_equal(&connection->download_hash,&packet->hash) )*/
+/*        {*/
+/*                res = writers_pool_writer_write(connection->download_writer,*/
+/*                        packet->start_offset,*/
+/*                        packet->end_offset,*/
+/*                        &packet->data);*/
+/*                assert( res == WRITERS_POOL_OK );*/
+/*        }*/
+	e2k_proto_write_to_cache( connection, &packet->hash,
+			packet->start_offset, packet->end_offset,
 			&packet->data);
-		assert( res == WRITERS_POOL_OK );
-	}
 }
 
 
@@ -378,15 +383,18 @@ inline void e2k_proto_handle_emule_data_compressed(struct e2k_packet_emule_data_
 			start_pos, start_pos + len_unzipped );
 
 	/* Oportunistic caching of downloaded files support */
-	if ( (connection->download_writer != NULL) &&
-	     hashes_are_equal(&connection->download_hash,&packet->hash) )
-	{
-		res = writers_pool_writer_write(connection->download_writer,
-			start_pos,
+/*        if ( (connection->download_writer != NULL) &&*/
+/*             hashes_are_equal(&connection->download_hash,&packet->hash) )*/
+/*        {*/
+/*                res = writers_pool_writer_write(connection->download_writer,*/
+/*                        start_pos,*/
+/*                        start_pos + len_unzipped, |+end is not inclusive+|*/
+/*                        zip_state->unzipped_buf);*/
+/*                assert( res == WRITERS_POOL_OK );*/
+/*        }*/
+	e2k_proto_write_to_cache(connection, &packet->hash, start_pos,
 			start_pos + len_unzipped, /*end is not inclusive*/
 			zip_state->unzipped_buf);
-		assert( res == WRITERS_POOL_OK );
-	}
 	
 }
 
