@@ -9,7 +9,10 @@ ALL =============================
 * erros dentro da metalist
 * rodar essa porra no valgrind
 * Zlib support (compressed packets, sending compressed )
+* simplificar a forma de loggar erros com uma macro
 * Metalist max size
+TCP ==============================
+* colocar o suporte ao nice
 UDP ==============================
 * Pegar mais metadados para colocar no core... (convêm salvar todo o metatag?!)
 
