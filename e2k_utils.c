@@ -1,7 +1,7 @@
 /**@file e2k_utils.c
  * @brief Utility functions
  * @author Tiago Alves Macambira
- * @version $Id: e2k_utils.c,v 1.1 2004-03-11 20:13:50 tmacam Exp $
+ * @version $Id: e2k_utils.c,v 1.2 2004-03-15 03:24:03 tmacam Exp $
  * 
  * 
  * Based on sample code provided with libnids and copyright (c) 1999
@@ -69,4 +69,22 @@ unsigned char* asprintf_hash(struct e2k_hash_t* hash )
 	}
 
 }
- 
+
+int fprintf_e2k_string(FILE* stream, struct e2k_string_t* netstring)
+{
+	return fprintf( stream,
+			"%.*s",
+			(int)(netstring->length),
+			(char*)&(netstring->str_data));
+}
+
+int fprintf_e2k_hash(FILE* stream, struct e2k_hash_t* hash )
+{
+	byte* hash_data = hash->data; /* Saving 16 ptrs. indirections*/
+
+	return fprintf(stream,"%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x",
+		hash_data[0], hash_data[1], hash_data[2], hash_data[3], 
+		hash_data[4], hash_data[5], hash_data[6], hash_data[7],
+		hash_data[8], hash_data[9], hash_data[10],hash_data[11],
+		hash_data[12],hash_data[13],hash_data[14],hash_data[15]);
+}

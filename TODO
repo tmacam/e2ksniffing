@@ -1,5 +1,6 @@
 Programming Task
 * verificar se setar collect=0 nos dois lados suprime NIDS_CLOSE
 * proteção contra pacotes enoooooooooormes
+* make test - sizeof float == 4, sizeof * = esperado?
 
 Implantação da Arquitetura

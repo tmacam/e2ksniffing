@@ -1,7 +1,7 @@
 /**@file e2k_utils.h
  * @brief Utility functions
  * @author Tiago Alves Macambira
- * @version $Id: e2k_utils.h,v 1.1 2004-03-11 20:13:50 tmacam Exp $
+ * @version $Id: e2k_utils.h,v 1.2 2004-03-15 03:24:03 tmacam Exp $
  * 
  * 
  * Based on sample code provided with libnids and copyright (c) 1999
@@ -50,5 +50,9 @@ unsigned char* hexstr (unsigned char *data, unsigned int len);
  * @param e2k_hash the MD4 hash
  */
 unsigned char* asprintf_hash(struct e2k_hash_t* hash );
+
+
+inline int fprintf_e2k_string(FILE* stream, struct e2k_string_t* netstring);
+inline int fprintf_e2k_hash(FILE* stream, struct e2k_hash_t* hash );
 
 #endif /*_E2K_UTILS__H_*/
