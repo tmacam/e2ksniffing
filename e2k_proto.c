@@ -1,7 +1,7 @@
 /**@file e2k_proto.c
  * @brief edonkey protocol handling funtions
  * @author Tiago Alves Macambira
- * @version $Id: e2k_proto.c,v 1.14 2004-09-01 01:05:40 tmacam Exp $
+ * @version $Id: e2k_proto.c,v 1.15 2004-10-07 17:38:04 tmacam Exp $
  * 
  * 
  * Based on sample code provided with libnids and copyright (c) 1999
@@ -258,7 +258,7 @@ inline void e2k_proto_handle_sending_part(struct e2k_packet_sending_part_t* pack
 		packet->header.packet_size - SENDING_DATA_HEADER_LEN )
 	{
 		fprintf( stderr, 
-			"ERROR: %s (%s:%i) - data offsets overflow packet size",
+		      "ERROR: %s (%s:%i) - data offsets overflow packet size\n",
 			__FUNCTION__, __FILE__, __LINE__);
 		fprintf(stdout," BOGUS / CORRUPTED");
 		return;
