@@ -4,7 +4,7 @@
 
 @author: Tiago Alves Macambira
 
-$Id: LogParser.py,v 1.3 2004-04-05 04:39:14 tmacam Exp $
+$Id: LogParser.py,v 1.4 2004-04-05 04:53:45 tmacam Exp $
 
 O parser segue a mesma idéia de vários parser XML existentes: para cada
 mensagem do log, ele chama um método correspondente.
@@ -46,7 +46,7 @@ class LogParser:
 		self.__regexp['EMULE COMPRESSED DATA:2']=re.compile(r'EMULE COMPRESSED DATA hash\[(?P<hash>\w+)\] offset\[(?P<offset_inicial>\d+),(?P<offset_compressed_length>\d+)\]')
 		self.__regexp['FILE STATUS']=re.compile(r'FILE STATUS hash\[(?P<hash>\w+)\] len(=|\[)(?P<length>\d+)\]* bitmap=0x\[(?P<bitmap>\w*)\]')
 		self.__regexp['FILE REQUEST ANSWER']=re.compile(r'FILE REQUEST ANSWER hash\[(?P<hash>\w+)\] filename\[(?P<filename>.*)\]\s*$')
-		self.__regexp['PREFIX']=re.compile(r'(?P<timestamp>[\d-]+) (?P<connection>[\d:\.,]+)\[(?<clientserver>\w)\] proto=0x\w\w msg_id=0x\w\w size=\d+ ')
+		self.__regexp['PREFIX']=re.compile(r'(?P<timestamp>[\d-]+) (?P<connection>[\d:\.,]+)\[(?P<clientserver>\w)\] proto=0x\w\w msg_id=0x\w\w size=\d+ ')
 
 	def __processLine(self):
 		try:
