@@ -1,7 +1,7 @@
 /**@file main.c
  * @brief main - Program, libs, and logging facilities setup and handling
  * @author Tiago Alves Macambira
- * @version $Id: main.c,v 1.22 2004-03-21 04:22:28 tmacam Exp $
+ * @version $Id: main.c,v 1.23 2004-03-21 04:49:28 tmacam Exp $
  * 
  * 
  * Based on sample code provided with libnids and copyright (c) 1999
@@ -119,8 +119,13 @@ inline void handle_tcp_data(struct tcp_stream *a_tcp, conn_state_t **conn_state_
 	nids_discard(a_tcp, discard_amount);
 	/* rotate_logfile is expensive... delay it with little overhead */
 	if( (packets_to_logrotate--) < 0){
-		rotate_logfile(LOGROTATE_INTERVAL, LOGROTATE_MAX_SIZE);
-		packets_to_logrotate= LOGROTATE_WITH_N_PACKETS;
+		packets_to_logrotate = LOGROTATE_WITH_N_PACKETS;
+		if( rotate_logfile(LOGROTATE_INTERVAL,LOGROTATE_MAX_SIZE) < 0){
+			syslog( nids_params.syslog_level,
+				" == ERROR: Could not logrotate");
+			fprintf( stderr, " == ERROR: Could not logrotate\n");
+			exit(1);
+		}
 	};
 }
 
@@ -306,6 +311,9 @@ void syslog_drops(void)
  * neste caso o tamanho deste fique muito grande ou ele esteja aberto a muito
  * tempo.
  *
+ * Um arquivo chamado 'current' é criado e, quando as condições de "rotating"
+ * estiverem satisfeitas, ele é renomeado para 
+ * 
  * Os arquivos textos (log) são gerados no diretório atual. Essa função não
  * não funciona se não estivermos sniffando a rede (is_sniffing).
  * 
@@ -321,12 +329,13 @@ int rotate_logfile( int interval, int max_size )
 
 	static FILE* log_file = NULL;
 	static time_t last_rotate = 0; /*FIXME not portable*/
+	
+#define FILENAME_LENGTH 100
+	unsigned char filename[FILENAME_LENGTH];
 
 	struct stat st_buff;
 	time_t now;
 	struct tm* now_tm;
-#define FILENAME_LENGTH 100
-	unsigned char filename[FILENAME_LENGTH];
 
 	/* If we are not sniffing, no redirection or rotation are done */
 	if (!is_sniffing){
@@ -336,7 +345,8 @@ int rotate_logfile( int interval, int max_size )
 	/* initialization */
 	if ( (time(&now) == (time_t)(-1)) ||
 	     ((now_tm = localtime(&now)) == NULL) ||
-	     (fstat(STDOUT_FILENO, &st_buff) == -1) ){
+	     (fstat(STDOUT_FILENO, &st_buff) == -1) )
+	{
 		fprintf(stderr,
 			" == rotate_logfile initialization error: %s\n",
 			strerror(errno));
@@ -345,28 +355,31 @@ int rotate_logfile( int interval, int max_size )
 	
 	/* Está na hora de rodar o log? */
 	if ( ( log_file == NULL ) || ( st_buff.st_size > max_size ) || 
-	     ( (int)difftime(now, last_rotate) > interval) ){
+	     ( (int)difftime(now, last_rotate) > interval) )
+	{
 		/* Zera o contador de tempo */
 		time(&last_rotate);
-		/* Fecha o log-file antigo */
+		/* Fecha a STDOUT */
+		close(STDOUT_FILENO);
+		/* Fecha e renomeia o log-file antigo */
 		if( log_file != NULL) {
 			fclose(log_file);
-		}
-		/* Gera o nome do novo log-file */
-		if ( strftime(filename,FILENAME_LENGTH-1,"%F-%H-%M-%S.log",
-		      now_tm) == 0 ){
-			fprintf(stderr," == Não pude criar um nome para o arquivo de log\n");
-			return -1;
+			/* Gera o nome do velho log-file */
+			if ( ( strftime(filename, FILENAME_LENGTH-1,
+					"%F-%H-%M-%S.log",now_tm) == 0 ) || 
+			   (rename("current",filename)<0) )
+			{
+				fprintf(stderr," == Não pude criar um nome para o arquivo de log\n");
+				return -1;
+			}
 		}
 		/* Abre o novo log-file*/
-		if ( (log_file=fopen(filename,"w")) == NULL ){
+		if ( (log_file=fopen("current","w")) == NULL ){
 			fprintf(stderr,
 				" == Não pude criar arquivo de log: %s\n",
 				strerror(errno));
 			return -1;
 		}
-		/* Fecha a STDOUT */
-		close(STDOUT_FILENO);
 		/* Liga a STDOUT ao arquivo LOG */
 		if( dup2(fileno(log_file),STDOUT_FILENO) != STDOUT_FILENO){
 			fprintf(stderr," == Não pude redirecionar a saída padrão para o arquivo de log: %s\n",strerror(errno));
