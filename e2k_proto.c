@@ -1,7 +1,7 @@
 /**@file e2k_proto.c
  * @brief edonkey protocol handling funtions
  * @author Tiago Alves Macambira
- * @version $Id: e2k_proto.c,v 1.5 2004-03-22 02:12:43 tmacam Exp $
+ * @version $Id: e2k_proto.c,v 1.6 2004-03-26 19:36:19 tmacam Exp $
  * 
  * 
  * Based on sample code provided with libnids and copyright (c) 1999
@@ -67,14 +67,14 @@ static unsigned char* e2k_special_tags_hash[LAST_KNOWN_STAG + 1] = {
 	/*0x15*/ "EDONKEY_STAG_AVAILABILITY",
 	/*0x16*/ "EDONKEY_STAG_QTIME",
 	/*0x17*/ "EDONKEY_STAG_PARTS",
-	/*0x18*/ NULL,
-	/*0x19*/ NULL,
-	/*0x1a*/ NULL,
-	/*0x1b*/ NULL,
-	/*0x1c*/ NULL,
-	/*0x1d*/ NULL,
-	/*0x1e*/ NULL,
-	/*0x1f*/ NULL,
+	/*0x18*/ "UNKNOWN_TAG",
+	/*0x19*/ "UNKNOWN_TAG",
+	/*0x1a*/ "UNKNOWN_TAG",
+	/*0x1b*/ "UNKNOWN_TAG",
+	/*0x1c*/ "UNKNOWN_TAG",
+	/*0x1d*/ "UNKNOWN_TAG",
+	/*0x1e*/ "UNKNOWN_TAG",
+	/*0x1f*/ "UNKNOWN_TAG",
 	/*0x20*/ "EMULE_STAG_COMPRESSION",
 	/*0x21*/ "EMULE_STAG_UDP_CLIENT_PORT",
 	/*0x22*/ "EMULE_STAG_UDP_VERSION",
@@ -208,7 +208,7 @@ inline void e2k_proto_handle_client_hello(struct e2k_packet_hello_client_t* pack
 	fprintf( stdout,
 		 "%s is_client[0x%x] client_hash[",
 		 msg_name,
-		 packet->hello_client_signature);
+		 packet->clienthash_size);
 	fprintf_e2k_hash(stdout,&packet->client_info.client_hash);
 	fprintf(stdout,"] ");
 	e2k_proto_handle_metalist(
@@ -217,7 +217,11 @@ inline void e2k_proto_handle_client_hello(struct e2k_packet_hello_client_t* pack
 
 inline void e2k_proto_handle_generic_client_hello(struct e2k_packet_hello_client_t* packet, unsigned char* msg_name)
 {
-	if (packet->hello_client_signature == 0x10 &&
+	/* Are we dealing with Hello to a client or to a server?
+	 * If it's a client hello, then clienthash_size must be 16!!!
+	 * aMule BaseClient.cpp says so...
+	 */
+	if (packet->clienthash_size == 0x10 && 
 	    packet->header.msg == EDONKEY_MSG_HELLO){
 		/* Ok. It really seems like a client_hello, keep going */
 		e2k_proto_handle_client_hello(packet, msg_name);

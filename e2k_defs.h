@@ -1,7 +1,7 @@
 /**@file e2k_defs.h
  * @brief Common edonkey definitions
  * @author Tiago Alves Macambira
- * @version $Id: e2k_defs.h,v 1.12 2004-03-15 03:24:03 tmacam Exp $
+ * @version $Id: e2k_defs.h,v 1.13 2004-03-26 19:36:19 tmacam Exp $
  *
  * Some parts of this file are from ethereal's packet-edonkey.{c,h}, and
  * thus covered by it's own licence (GPL compat)
@@ -140,7 +140,7 @@ struct e2k_packet_hello_t {
 
 struct e2k_packet_hello_client_t {
 	struct e2k_header_t header;
-	byte hello_client_signature;
+	byte clienthash_size;
 	struct e2k_client_info_t client_info;
 }__attribute__ ((packed));
 
