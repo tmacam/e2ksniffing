@@ -1,7 +1,7 @@
 /**@file main.h
  * @brief main - Program, libs, and logging facilities setup and handling
  * @author Tiago Alves Macambira
- * @version $Id: main.h,v 1.12 2004-09-01 01:05:40 tmacam Exp $
+ * @version $Id: main.h,v 1.13 2004-09-01 20:41:38 tmacam Exp $
  * 
  * Based on sample code provided with libnids and copyright (c) 1999
  * Rafal Wojtczuk <nergal@avet.com.pl>. All rights reserved.
@@ -32,14 +32,9 @@
 #define LOGROTATE_WITH_N_PACKETS 100;
 #define E2K_WRITER_POOL_SAVE_PATH "/tmp/cache/"
 
-/**@def P4P_SIGNATURE_SHORT_CIRCUIT 
- * @brief if defined, we will only write and/or try to unzip data in the
- * range of the P4P hashing areas.
- *
- * The normal value to this define is 8388608l, i.e., 8M
- */
+/**@see p4p_short_circuit.h */
 #ifdef P4P_SIGNATURE_SHORT_CIRCUIT
- #warning P4P_SIGNATURE_SHORT_CIRCUIT enabled: logging and opportunistic caching of files will be compromised 
+ #include "p4p_short_circuit.h"
 #endif /* P4P_SIGNATURE_SHORT_CIRCUIT */
 
 #define UDP_NICE_INCREMENT 10
