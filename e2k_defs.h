@@ -1,7 +1,7 @@
 /**@file e2k_defs.h
  * @brief Common edonkey definitions
  * @author Tiago Alves Macambira
- * @version $Id: e2k_defs.h,v 1.20 2004-12-06 16:46:46 tmacam Exp $
+ * @version $Id: e2k_defs.h,v 1.21 2004-12-10 16:48:02 tmacam Exp $
  *
  * Some parts of this file are from ethereal's packet-edonkey.{c,h}, and
  * thus covered by it's own licence (GPL compat)
@@ -60,6 +60,9 @@
 #define EDONKEY_MTAG_BOOL                0x05
 #define EDONKEY_MTAG_BOOL_ARRAY          0x06
 #define EDONKEY_MTAG_BLOB                0x07
+#define EDONKEY_MTAG_UINT16              0x08
+#define EDONKEY_MTAG_UINT8               0x09
+
 
 /* EDONKEY SPECIAL TAGS */
 #define EDONKEY_STAG_UNKNOWN             0x00

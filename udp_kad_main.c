@@ -69,6 +69,8 @@ int is_sniffing = 0;
 int rotate_logfile( int interval, int max_size );
 
 
+
+
 /* ********************************************************************  
  * Protocol related functions
  * ******************************************************************** */
@@ -196,6 +198,129 @@ struct e2k_udp_header_t* kad_zip_uncompress(struct e2k_udp_header_t* packed_pkt,
 	return result;
 }
 
+/**@brief Endianness crazyness - BigEndian? */
+struct e2k_hash_t* kad_key_to_hash(struct e2k_hash_t* kad_key){
+	int i;
+	static struct e2k_hash_t hash;
+	byte* b = (byte*)&hash;
+
+	dword* _key = (dword*)kad_key;
+
+	for (i=0; i<16; i++) {
+		b[i] = (byte)(_key[i/4] >> (8*(3-(i%4))));
+	}
+	
+	return &hash;
+}
+
+void fprintf_kad_key(FILE* stream,struct e2k_hash_t* key)
+{
+	fprintf_e2k_hash(stream,kad_key_to_hash(key));
+}
+
+void fprintf_kad_udp_peer(FILE* stream, struct kad_udp_peer_t* peer)
+{
+	fprintf(stream," peer: ");
+	fprintf_kad_key( stream, &peer->id);
+	fprintf(stream,":%lu:%u:%u:0x%02x", peer->ip, peer->udp_port,
+			peer->tcp_port, peer-> type);
+}
+
+void fprintf_kad_taglist(FILE* stream, struct kad_udp_taglist_t* taglist)
+{
+	dword i = 0;
+	int offset = 0;
+	struct e2k_metalist_tag_t* tag = NULL;
+
+	/* aux. vars - just to make code easyer to read */
+	byte tag_name;
+	struct e2k_hash_t* hash = NULL;
+	struct e2k_string_t* netstring = NULL;
+	byte* read_byte = NULL;
+	word* read_word = NULL;
+	dword* read_dword = NULL;
+	float* read_float = NULL;
+
+	byte* data = &taglist->data;
+	
+	fprintf(stream,"TAGLIST{ len: %lu ", taglist->length);
+	for (i = 0; i < taglist->length; i++){
+		/*Print the name of the tag */
+		tag = (void*)&data[offset];
+		if (tag->name.length > 1 ){
+			/*Ops! Got a netstring as tag name*/
+			fprintf_e2k_string(stream,&tag->name);
+		} else {
+			/* We don't know all the possible stag names */
+			tag_name = tag->name.str_data;
+			fprintf( stream, "%s",kad_special_tags_hash[tag_name]);
+		};
+		fprintf(stream,"[");
+		offset += (3 + tag->name.length); /* byte word strlen*/
+
+		/* Print the content */
+		switch(tag->type){
+			case EDONKEY_MTAG_HASH:
+				hash = (struct e2k_hash_t*)&data[offset];
+				fprintf_e2k_hash(stream, hash);
+				//fprintf(stream," kadkey: ");
+				//fprintf_kad_key(stream, hash);
+				offset += sizeof(struct e2k_hash_t);
+				break;
+			case EDONKEY_MTAG_STRING:
+				netstring = (struct e2k_string_t*)&data[offset];
+				fprintf_e2k_string(stream,netstring);
+				offset += (2 + netstring->length);
+				break;
+			case EDONKEY_MTAG_UINT8:
+				read_byte = (byte*)&data[offset];
+				fprintf(stream,"%u",*read_byte);
+				offset += sizeof(byte);
+				break;
+			case EDONKEY_MTAG_UINT16:
+				read_word = (word*)&data[offset];
+				fprintf(stream,"%u",*read_word);
+				offset += sizeof(word);
+				break;
+			case EDONKEY_MTAG_DWORD:
+				read_dword = (dword*)&data[offset];
+				fprintf(stream,"%u",*read_dword);
+				offset += sizeof(dword);
+				break;
+			case EDONKEY_MTAG_FLOAT:
+				read_float = (float*)&data[offset];
+				fprintf(stream,"%f",*read_float);
+				offset += sizeof(float);
+				break;
+			case EDONKEY_MTAG_BOOL:
+			case EDONKEY_MTAG_BOOL_ARRAY:
+			case EDONKEY_MTAG_BLOB:
+			case EDONKEY_MTAG_UNKNOWN:
+			default:
+				/* Ih! Fudeu.... e agora?! */
+				/* Don't now what to do! Just return and
+				 * ignore the rest of the meta-tag list */
+				fprintf(stream,"??? 0x%02x ???]}", tag->type);
+				return;
+		}
+		fprintf(stream,"] ");
+	}
+	fprintf(stream,"}");
+}
+
+void fprintf_kad_publish_entry (FILE* stream,
+		struct kad_udp_publish_entry_t* entry)
+{
+
+	fprintf(stream," [entry ");
+	fprintf_kad_key( stream, &entry->id);
+	fprintf(stream," ");
+	fprintf_kad_taglist(stream, &entry->taglist);
+	fprintf(stream," entry] ");
+
+}
+
+
 
 /* ********************************************************************  
  * Message decoding functions
@@ -210,30 +335,44 @@ void kad_proto_handle_request(struct kad_udp_packet_request_t* packet)
 	
 	fprintf(stdout," para: 0x%02x %s target: ",packet->type,
 			kad_params_hash[packet->type]);
-	fprintf_e2k_hash(stdout,&packet->target);
+	fprintf_kad_key(stdout,&packet->target);
 	fprintf(stdout," receiver: ");
-	fprintf_e2k_hash(stdout,&packet->receiver);
+	fprintf_kad_key(stdout,&packet->receiver);
 }
 
 void kad_proto_handle_response(struct kad_udp_packet_response_t* packet)
 {
+	int i = 0;
+	struct kad_udp_peer_t* peers = NULL;
+
 	fprintf(stdout," target: ");
-	fprintf_e2k_hash(stdout,&packet->target);
+	fprintf_kad_key(stdout,&packet->target);
 	fprintf(stdout," count: %02u",packet->count);
+
+	peers = &packet->peers;
+	for (i = 0; i < packet->count; i++){
+		fprintf_kad_udp_peer(stdout, &peers[i]);
+	}
 }
 
 void kad_proto_handle_publish_res(struct kad_udp_packet_publish_res_t* packet)
 {
 	fprintf(stdout," file: ");
-	fprintf_e2k_hash(stdout,&packet->file);
+	fprintf_kad_key(stdout,&packet->file);
 	fprintf(stdout," load: %u",packet->load);
 }
 
 void kad_proto_handle_publish_req(struct kad_udp_packet_publish_req_t* packet)
 {
+	int i = 0;
+	
 	fprintf(stdout," target: ");
-	fprintf_e2k_hash(stdout,&packet->target);
-	fprintf(stdout," load: %u",packet->count);
+	fprintf_kad_key(stdout,&packet->target);
+	fprintf(stdout," count: %u",packet->count);
+
+	if(packet->count > 0){
+		fprintf_kad_publish_entry(stdout,&packet->publish_entries);
+	}
 }
 
 /* ********************************************************************  

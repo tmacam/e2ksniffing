@@ -1,7 +1,7 @@
 /**@file kad_defs.h
  * @brief Common kad definitions
  * @author Tiago Alves Macambira
- * @version $Id: kad_defs.h,v 1.1 2004-12-06 16:46:46 tmacam Exp $
+ * @version $Id: kad_defs.h,v 1.2 2004-12-10 16:48:02 tmacam Exp $
  *
  * Some parts of this file are from ethereal's packet-edonkey.{c,h}, and
  * thus covered by it's own licence (GPL compat)
@@ -62,6 +62,11 @@
  * Protocol structures and typedefs 
  * ******************************************************************** */
 
+struct kad_udp_taglist_t{
+        byte length;
+        byte data; /*assume 'data' as an array*/
+}__attribute__((packed));
+
 
 struct kad_udp_peer_t{
 	struct e2k_hash_t id;
@@ -73,7 +78,7 @@ struct kad_udp_peer_t{
 
 struct kad_udp_publish_entry_t{
 	struct e2k_hash_t id;
-	struct e2k_metalist_t metalist;
+	struct kad_udp_taglist_t taglist;
 }__attribute__ ((packed));
 
 struct kad_udp_packet_request_t{
@@ -99,7 +104,7 @@ struct kad_udp_packet_publish_res_t{
 struct kad_udp_packet_publish_req_t{
 	struct e2k_udp_header_t header;
 	struct e2k_hash_t target;
-	byte count; /**< Number of entries in this publish request */
+	word count; /**< Number of entries in this publish request */
 	/** entries (use it as an array) */
 	struct kad_udp_publish_entry_t publish_entries; 
 }__attribute__ ((packed));
