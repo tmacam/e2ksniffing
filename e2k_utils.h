@@ -1,7 +1,7 @@
 /**@file e2k_utils.h
  * @brief Utility functions
  * @author Tiago Alves Macambira
- * @version $Id: e2k_utils.h,v 1.3 2004-03-21 01:59:23 tmacam Exp $
+ * @version $Id: e2k_utils.h,v 1.4 2004-03-21 02:29:07 tmacam Exp $
  * 
  * 
  * Based on sample code provided with libnids and copyright (c) 1999
@@ -62,5 +62,6 @@ unsigned char * strtimestamp();
 
 inline int fprintf_e2k_string(FILE* stream, struct e2k_string_t* netstring);
 inline int fprintf_e2k_hash(FILE* stream, struct e2k_hash_t* hash );
+inline int fprintf_e2k_hex (FILE* stream,unsigned char *data, unsigned int len);
 
 #endif /*_E2K_UTILS__H_*/

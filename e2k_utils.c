@@ -1,7 +1,7 @@
 /**@file e2k_utils.c
  * @brief Utility functions
  * @author Tiago Alves Macambira
- * @version $Id: e2k_utils.c,v 1.3 2004-03-21 01:59:23 tmacam Exp $
+ * @version $Id: e2k_utils.c,v 1.4 2004-03-21 02:29:07 tmacam Exp $
  * 
  * 
  * Based on sample code provided with libnids and copyright (c) 1999
@@ -98,4 +98,19 @@ int fprintf_e2k_hash(FILE* stream, struct e2k_hash_t* hash )
 		hash_data[4], hash_data[5], hash_data[6], hash_data[7],
 		hash_data[8], hash_data[9], hash_data[10],hash_data[11],
 		hash_data[12],hash_data[13],hash_data[14],hash_data[15]);
+}
+
+int fprintf_e2k_hex (FILE* stream,unsigned char *data, unsigned int len)
+{
+        int i = 0;
+	int result=0;
+
+        for(i = 0; i < len; i++) {
+                result=fprintf(stream, "%02x", data[i]);
+		if (result < 0){
+			break;
+		}
+        }
+
+        return result;
 }

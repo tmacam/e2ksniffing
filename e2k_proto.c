@@ -1,7 +1,7 @@
 /**@file e2k_proto.c
  * @brief edonkey protocol handling funtions
  * @author Tiago Alves Macambira
- * @version $Id: e2k_proto.c,v 1.3 2004-03-21 01:59:23 tmacam Exp $
+ * @version $Id: e2k_proto.c,v 1.4 2004-03-21 02:29:07 tmacam Exp $
  * 
  * 
  * Based on sample code provided with libnids and copyright (c) 1999
@@ -85,7 +85,14 @@ static unsigned char* e2k_special_tags_hash[LAST_KNOWN_STAG + 1] = {
 
 	
 /* ********************************************************************  
- * edonkey protocol handling funtions - forward declaration
+ * edonkey protocol handling funtions - printf_e2k_ fanfare
+ *
+ * All the functions bellow are used to handle especific edonkey messages.
+ * In practice, now, all they do is print to stdout all the relevant
+ * parts of each message we are interessted in.
+ *
+ * We are trying to avoid coping anything and using the structures in-place.
+ * to cause in the least possible overhead
  * ******************************************************************** */
 
 int e2k_proto_handle_metalist(struct e2k_metalist_t* metalist)
@@ -156,7 +163,6 @@ int e2k_proto_handle_metalist(struct e2k_metalist_t* metalist)
 		fprintf(stdout,"] ");
 	}
 	fprintf(stdout,"}");
-
 }
 
 inline void e2k_proto_handle_file_status_answer( struct e2k_packet_file_request_answer_t* packet)
@@ -185,7 +191,8 @@ inline void e2k_proto_handle_sending_part(struct e2k_packet_sending_part_t* pack
 
 
 
-inline void e2k_proto_handle_hello(struct e2k_packet_hello_t* packet, unsigned char* msg_name) {
+inline void e2k_proto_handle_hello(struct e2k_packet_hello_t* packet, unsigned char* msg_name)
+{
 	fprintf( stdout,
 		 "%s client_hash[",
 		 msg_name);
@@ -221,7 +228,8 @@ inline void e2k_proto_handle_generic_client_hello(struct e2k_packet_hello_client
 }
 
 
-inline void e2k_proto_handle_generic_emule_hello(struct e2k_packet_emule_hello_t* packet, unsigned char* msg_name) {
+inline void e2k_proto_handle_generic_emule_hello(struct e2k_packet_emule_hello_t* packet, unsigned char* msg_name)
+{
 	fprintf(stdout,"%s version[%i] ", msg_name, packet->version);
 	e2k_proto_handle_metalist(&packet->meta_tag_list);
 }
@@ -234,6 +242,39 @@ inline void e2k_proto_handle_emule_data_compressed(struct e2k_packet_emule_data_
 		packet->start_offset,packet->packed_len);
 }
 
+inline void e2k_proto_request_parts( struct e2k_packet_request_parts_t *packet)
+{
+	fprintf(stdout,"REQUEST PARTS hash[");
+	fprintf_e2k_hash(stdout,&packet->hash);
+	fprintf(stdout,"] offset_1[%i,%i] offset_2[%i,%i] offset_3[%i,%i]",
+		packet->start_offset_1,
+		packet->end_offset_1,
+		packet->start_offset_2,
+		packet->end_offset_2,
+		packet->start_offset_3,
+		packet->end_offset_3
+		);
+}
+
+inline void e2k_proto_handle_file_status(struct e2k_packet_file_status_t *packet)
+{
+	fprintf( stdout,"FILE STATUS hash[");
+	fprintf_e2k_hash(stdout,&packet->hash);
+	fprintf( stdout,"] len[%i] bitmap=0x[", packet->len);
+	fprintf_e2k_hex(stdout, &packet->bitmap,(packet->len+7)/8);
+	fprintf(stdout,"]");
+}
+
+inline void e2k_proto_handle_queue_rank(struct e2k_packet_queue_rank_t *packet)
+{
+	fprintf( stdout, "QUEUE RANK rank[%i]", packet->rank);
+}
+
+inline void e2k_proto_handle_emule_queue_ranking (struct e2k_packet_emule_queue_ranking_t *packet)
+{
+	fprintf( stdout, "QUEUE RANKING rank[%i]", packet->rank);
+}
+
 /* ********************************************************************  
  * edonkey protocol handling funtions - implementation
  * ******************************************************************** */
@@ -242,7 +283,6 @@ void handle_edonkey_packet(int is_server, char *pkt_data, char *address_str)
 {
 	struct e2k_header_t *hdr= NULL;
 	char *direction = NULL;
-	char *hash_str = NULL;
 	
 	(void*)hdr = (void*)pkt_data;
 	
@@ -270,42 +310,13 @@ void handle_edonkey_packet(int is_server, char *pkt_data, char *address_str)
 		} else if (hdr->msg == EDONKEY_MSG_FILE_REQUEST_ANSWER ) {
 			e2k_proto_handle_file_status_answer((void*)pkt_data);
 		} else if (hdr->msg == EDONKEY_MSG_REQUEST_PARTS ) {
-			struct e2k_packet_request_parts_t *parts_req = NULL;
-			(void *)parts_req = (void *)pkt_data;
-			hash_str=asprintf_hash(&parts_req->hash);
-			CHECK_IF_NULL(hash_str);
-			fprintf(stdout,
-				"REQUEST PARTS hash[%s] offset_1[%i,%i] offset_2[%i,%i] offset_3[%i,%i]",
-				hash_str,
-				parts_req->start_offset_1,
-				parts_req->end_offset_1,
-				parts_req->start_offset_2,
-				parts_req->end_offset_2,
-				parts_req->start_offset_3,
-				parts_req->end_offset_3
-				);
+			e2k_proto_request_parts((void*)pkt_data);
 		} else if (hdr->msg == EDONKEY_MSG_SENDING_PART ) {
 			e2k_proto_handle_sending_part( (void*)pkt_data);
 		} else if (hdr->msg == EDONKEY_MSG_FILE_STATUS ) {
-			struct e2k_packet_file_status_t *status_pkt = NULL;
-			char* bitmap_hex_str = NULL;
-			(void *)status_pkt = (void *)pkt_data;
-			hash_str=asprintf_hash(&status_pkt->hash);
-			bitmap_hex_str = hexstr( &status_pkt->bitmap,
-						(status_pkt->len+7)/8);
-			CHECK_IF_NULL(hash_str);
-			fprintf( stdout,
-				"FILE STATUS hash[%s] len=%i bitmap=0x[%s]",
-				hash_str, 
-				status_pkt->len,
-				bitmap_hex_str);
-			free(bitmap_hex_str);
+			e2k_proto_handle_file_status( (void*)pkt_data);
 		} else if (hdr->msg == EDONKEY_MSG_QUEUE_RANK ) {
-			struct e2k_packet_queue_rank_t *rank_pkt = NULL;
-			(void *)rank_pkt = (void *)pkt_data;
-			fprintf( stdout,
-				 "QUEUE RANK rank[%i]",
-				 rank_pkt->rank);
+			e2k_proto_handle_queue_rank( (void*)pkt_data);
 		}
 	/*    for emule extension messages */
 	} else if (hdr->proto == EDONKEY_PROTO_EMULE) {
@@ -318,19 +329,9 @@ void handle_edonkey_packet(int is_server, char *pkt_data, char *address_str)
 		} else if (hdr->msg == EMULE_MSG_DATA_COMPRESSED) {
 			e2k_proto_handle_emule_data_compressed((void*)pkt_data);
 		} else if (hdr->msg == EMULE_MSG_QUEUE_RANKING ) {
-			struct e2k_packet_emule_queue_ranking_t *rank_pkt =NULL;
-			(void *)rank_pkt = (void *)pkt_data;
-			fprintf( stdout,
-				"QUEUE RANKING rank[%i]",
-				rank_pkt->rank);
+			e2k_proto_handle_emule_queue_ranking ((void*)pkt_data);
 		}
 
-	}
-
-null_error:
-	/* Free allocated resources */
-	if (hash_str != NULL){
-		free(hash_str);
 	}
 
 	/* Finish the log line */
