@@ -11,7 +11,7 @@ Ao final de sua execução teremos os seguintes arquivos:
 session.{bdb,gdb,db}
 hash.{bdb,gdbm,db}
 
-$Id: FirstPass.py,v 1.7 2004-04-05 04:53:21 tmacam Exp $
+$Id: FirstPass.py,v 1.8 2004-04-05 04:59:53 tmacam Exp $
 """
 
 import sys
@@ -117,7 +117,7 @@ class FirstPass(LogParser.LogParser):
 
 		
 	
-	def onClientHello(self,hash):
+	def onClientHelloAnswer(self,hash):
 		"""Registers the ClientHash of the Client-Peer in the
 		session. It will later be (possibly) associeated with
 		the session's client_hash.
