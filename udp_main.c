@@ -2,7 +2,7 @@
  * @brief main - Program, libs, and logging facilities setup and handling for
  *        UDP query messages
  * @author Tiago Alves Macambira
- * @version $Id: udp_main.c,v 1.1 2004-04-01 22:03:59 tmacam Exp $
+ * @version $Id: udp_main.c,v 1.2 2004-04-01 22:31:16 tmacam Exp $
  * 
  * 
  * Based on sample code provided with libnids and copyright (c) 1999
@@ -100,6 +100,11 @@ inline static void get_file_details_from_metalist(
 
 	byte* data = &metalist->data;
 	
+	/* Sanity check */
+	if (metalist->length > 16 ){
+		return;
+	}
+	
 	for (i = 0; i < metalist->length; i++){
 		(void*)tag = (void*)&data[offset];
 		/*Get the name of the tag */
@@ -174,11 +179,11 @@ void udp_callback(struct tuple4* addr, char* buf, int len, void* not_used)
                 (struct e2k_metalist_t*)&packet->file_info.meta_tag_list,
 		&filename,
 		&filesize);
-	fprintf( stdout, "hash[");
+	fprintf( stdout, "udp_port[%u] hash[", addr->saddr);
         fprintf_e2k_hash(stdout,&packet->file_info.file_hash);
-        fprintf(stdout,"] ");
+        fprintf(stdout,"]\t");
 	if (filename != NULL && filesize != NULL){
-		fprintf(stdout,"size[%8u] filename[",*filesize);
+		fprintf(stdout,"size[%u]\tfilename[",*filesize);
 		fprintf_e2k_string(stdout,filename);
 		fprintf(stdout,"]\n");
 		/* Statistics */
