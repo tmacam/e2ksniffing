@@ -11,7 +11,7 @@ Ao final de sua execução teremos os seguintes arquivos:
 session.{bdb,gdb,db}
 hash.{bdb,gdbm,db}
 
-$Id: FirstPass.py,v 1.4 2004-04-05 03:09:54 tmacam Exp $
+$Id: FirstPass.py,v 1.5 2004-04-05 03:15:34 tmacam Exp $
 """
 
 import sys
@@ -100,11 +100,11 @@ class FirstPass(LogParser.LogParser):
 
 	def onFileRequestAnswer(self,hash,filename):
 		self.updateSessionByteHit( hash, 0)
-		if not self.hashes[hash]['names'].has_key(filename):
+		if filename not in self.hashes[hash]['names']:
 			self.hashes[hash]['names'].append(filename)
 
 	def onError(self,offending_line,offending_exception):
-		sys.stderr.write("ERROR: %s\n\t%s",offending_exception offending_line)
+		sys.stderr.write("ERROR: %s\n\t%s" %(offending_exception,offending_line))
 
 	def onFinish(self):
 		pass
