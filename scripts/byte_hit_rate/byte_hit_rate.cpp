@@ -17,6 +17,7 @@ void create_fraghash_from_maxsizes( ifstream& file, fileid_frags_hash_t& h,
 	string hash;
 	offset_count_t maxsize;
 	int i = 0;
+	int j = 0;
 
 	while(! file.eof()){
 		file.width(32);
@@ -27,7 +28,8 @@ void create_fraghash_from_maxsizes( ifstream& file, fileid_frags_hash_t& h,
 		// give us some Idea of what is happening
 		i++;
 		if ( i > 1000){
-			cout << "\t.\n";
+			j++;
+			cout << "\t"<<j<<"000 arquivos ...\n";
 			i=0;
 		}
 	}
@@ -44,7 +46,7 @@ void print_byte_hit(ofstream& output, const string& hash,
 
 int main (int argc, char* argv[])
 {
-	unsigned int frag_size = 4096;
+	unsigned int frag_size = 1024*20;
 	
 	if (argc < 4){
 		std::cout <<"Usage: byte_hit_rate log.txt max_sizes.txt hash_hit.txt\n";
