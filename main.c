@@ -1,7 +1,7 @@
 /**@file main.c
  * @brief main - Program, libs, and logging facilities setup and handling
  * @author Tiago Alves Macambira
- * @version $Id: main.c,v 1.20 2004-03-21 01:59:23 tmacam Exp $
+ * @version $Id: main.c,v 1.21 2004-03-21 02:20:11 tmacam Exp $
  * 
  * 
  * Based on sample code provided with libnids and copyright (c) 1999
@@ -290,6 +290,13 @@ void syslog_drops(void)
 		syslog( nids_params.syslog_level,
 			" == Statistics: Droped Packets: %i, Active Connections: %i, Received Packtes: %i",
 			stat.ps_drop,
+			n_connections,
+			stat.ps_recv);
+		/* Eu não confio mais em nada! E chega de comentários
+		 * em inglês!*/
+		fprintf( stdout,
+			 " == Statistics: Droped Packets: %i, Active Connections: %i, Received Packtes: %i",
+			 stat.ps_drop,
 			n_connections,
 			stat.ps_recv);
 	}
