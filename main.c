@@ -1,7 +1,7 @@
 /**@file main.c
  * @brief main - Program, libs, and logging facilities setup and handling
  * @author Tiago Alves Macambira
- * @version $Id: main.c,v 1.23 2004-03-21 04:49:28 tmacam Exp $
+ * @version $Id: main.c,v 1.24 2004-03-21 20:24:09 tmacam Exp $
  * 
  * 
  * Based on sample code provided with libnids and copyright (c) 1999
@@ -113,8 +113,8 @@ inline void handle_tcp_data(struct tcp_stream *a_tcp, conn_state_t **conn_state_
 	}
 
 	if(debug > 2){
-		fprintf(stderr,"\n\n\n == SERVER AND CLIENT DATA ARRIVED SIMUTANEOUSLY!!!!\n\n\n");
-		exit(1);
+		fprintf(stderr,"\n\n\n == ERROR: SERVER AND CLIENT DATA ARRIVED SIMUTANEOUSLY!!!!\n\n\n");
+		abort();
 	}
 	nids_discard(a_tcp, discard_amount);
 	/* rotate_logfile is expensive... delay it with little overhead */
@@ -122,9 +122,12 @@ inline void handle_tcp_data(struct tcp_stream *a_tcp, conn_state_t **conn_state_
 		packets_to_logrotate = LOGROTATE_WITH_N_PACKETS;
 		if( rotate_logfile(LOGROTATE_INTERVAL,LOGROTATE_MAX_SIZE) < 0){
 			syslog( nids_params.syslog_level,
-				" == ERROR: Could not logrotate");
-			fprintf( stderr, " == ERROR: Could not logrotate\n");
-			exit(1);
+				" == ERROR: Could not logrotate: %s\n",
+				e2ksniff_errbuf);
+			fprintf( stderr,
+				" == ERROR: Could not logrotate: %s\n",
+				e2ksniff_errbuf);
+			abort();
 		}
 	};
 }
@@ -205,13 +208,14 @@ void tcp_callback(struct tcp_stream *a_tcp, conn_state_t **conn_state_ptr)
  */
 void out_of_memory_callback()
 {
-	fprintf(stdout," == NDIS run out of memory!!!\n");
+	fprintf(stdout," == ERROR: NDIS run out of memory!!!\n");
 	fflush(stdout); 
-	fprintf(stderr,"NDIS run out of memory!!!\n");
+	fprintf(stderr," == ERROR: NDIS run out of memory!!!\n");
 	fflush(stderr);
-	syslog( nids_params.syslog_level, " == NIDS run out of memory!!!"); 
+	syslog( nids_params.syslog_level,
+		" == ERROR: NIDS run out of memory!!!"); 
 	/* FIXME so... now what?! Exit, call a "save yourselves function?" */
-	exit(1);
+	abort();
 }
 
 /**@brief Drop root privilages 
@@ -225,7 +229,7 @@ void out_of_memory_callback()
  * @param unpriv_user the name of the unprivileged user the process will
  * impersonate.
  *
- * @return 0 in case of success. A non-zero value in case of error.
+ * @return 0 in case of success. -1 in case of error.
  */
 int drop_privilages(const unsigned char* unpriv_user)
 {
@@ -241,7 +245,7 @@ int drop_privilages(const unsigned char* unpriv_user)
 				  sizeof(e2ksniff_errbuf) -1,
 				  "There is no user '%s'",
 				  unpriv_user);
-			goto error;
+			return -1;
 		} 
 		/* Change GID */
 		if ( setgid(pw->pw_gid) != 0 ){
@@ -249,14 +253,14 @@ int drop_privilages(const unsigned char* unpriv_user)
 				 sizeof(e2ksniff_errbuf) -1,
 				 "Cannot change GID: %s",
 				 strerror(errno) );
-			goto error;
+			return -1;
 		}
 		/* Clean the supplementary group ID list*/
 		if ( setgroups(0,NULL) != 0 ) {
 			snprintf( e2ksniff_errbuf,
 				  sizeof(e2ksniff_errbuf) -1,
 				  "Could not clen the supplementary group IDs list");
-			goto error;
+			return -1;
 			
 		}
 		/* Finally, change the UID*/
@@ -265,7 +269,7 @@ int drop_privilages(const unsigned char* unpriv_user)
 				 sizeof(e2ksniff_errbuf) -1,
 				 "Cannot change UID: %s",
 				 strerror(errno) );
-			goto error;
+			return -1;
 		}		
 		/* Am I still a superuser ? 
 		 * unpriv_user must be a superuser then. */
@@ -273,14 +277,12 @@ int drop_privilages(const unsigned char* unpriv_user)
 			snprintf( e2ksniff_errbuf,
 				  sizeof(e2ksniff_errbuf) -1,
 				  "%s is a superuser - can't drop privileges by impersonating a superuser: is nonsense, dude!", unpriv_user);
-			goto error;
+			return -1;
 		}
 	} 
 	
 	/* Success */
 	return 0;
-error:
-	return 1;
 }
 
 void syslog_drops(void)
@@ -347,9 +349,10 @@ int rotate_logfile( int interval, int max_size )
 	     ((now_tm = localtime(&now)) == NULL) ||
 	     (fstat(STDOUT_FILENO, &st_buff) == -1) )
 	{
-		fprintf(stderr,
-			" == rotate_logfile initialization error: %s\n",
-			strerror(errno));
+		snprintf( e2ksniff_errbuf,
+			  sizeof(e2ksniff_errbuf) -1,
+			  "initialization error: %s",
+			  strerror(errno));
 		return -1;
 	}
 	
@@ -369,20 +372,26 @@ int rotate_logfile( int interval, int max_size )
 					"%F-%H-%M-%S.log",now_tm) == 0 ) || 
 			   (rename("current",filename)<0) )
 			{
-				fprintf(stderr," == Não pude criar um nome para o arquivo de log\n");
+				snprintf( e2ksniff_errbuf,
+			  		  sizeof(e2ksniff_errbuf) -1,
+					  "Could not create a filename for the log: strftime error.");
 				return -1;
 			}
 		}
 		/* Abre o novo log-file*/
 		if ( (log_file=fopen("current","w")) == NULL ){
-			fprintf(stderr,
-				" == Não pude criar arquivo de log: %s\n",
-				strerror(errno));
+			snprintf( e2ksniff_errbuf,
+				  sizeof(e2ksniff_errbuf) -1,
+				  "Could not create log file: %s",
+				  strerror(errno));
 			return -1;
 		}
 		/* Liga a STDOUT ao arquivo LOG */
 		if( dup2(fileno(log_file),STDOUT_FILENO) != STDOUT_FILENO){
-			fprintf(stderr," == Não pude redirecionar a saída padrão para o arquivo de log: %s\n",strerror(errno));
+			snprintf( e2ksniff_errbuf,
+				  sizeof(e2ksniff_errbuf) -1,
+				  "Could not redirect STDOUT to log file: %s",
+				  strerror(errno));
 			return -1;
 		}	
 	}

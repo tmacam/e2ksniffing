@@ -1,7 +1,7 @@
 /**@file main.h
  * @brief main - Program, libs, and logging facilities setup and handling
  * @author Tiago Alves Macambira
- * @version $Id: main.h,v 1.6 2004-03-21 01:14:30 tmacam Exp $
+ * @version $Id: main.h,v 1.7 2004-03-21 20:24:09 tmacam Exp $
  * 
  * Based on sample code provided with libnids and copyright (c) 1999
  * Rafal Wojtczuk <nergal@avet.com.pl>. All rights reserved.
@@ -39,7 +39,7 @@
 /**@brief In which state are we rearding the sniffing of a given stream? */
 enum sniff_state { 
 	/** We are waiting for enought data to read the next header*/
-	wait_full_header,
+	wait_full_header = 0,
 	/** we are just skiping till the begining of the next header */
 	skip_full_packet,
 	/** we are waiting for enought data to read the next packet */

@@ -1,7 +1,7 @@
 /**@file e2k_state_machine.c
  * @brief edonkey state-machine control function
  * @author Tiago Alves Macambira
- * @version $Id: e2k_state_machine.c,v 1.1 2004-03-11 20:13:49 tmacam Exp $
+ * @version $Id: e2k_state_machine.c,v 1.2 2004-03-21 20:24:09 tmacam Exp $
  * 
  * 
  * Based on sample code provided with libnids and copyright (c) 1999
@@ -15,6 +15,7 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include "nids.h"
 
 #include "main.h"
@@ -172,8 +173,9 @@ unsigned int handle_halfstream_data(int is_server,
 			case ignore_connection:
 				return 0; /* get out of HERE FAST!!! */
 				break;
-							
-				
+			default:
+				/* HOW DID you GET here?! */
+				abort();
 		}
 	}
 	/* Need more data. If the next packet is beyond the end of the
