@@ -45,10 +45,10 @@ class FirstPass(LogParser.LogParser):
 	NOTICE: we are using the tuple4/tcp endpoints's addresses as session
 	identifier.
 	"""
-	def __init__(self,filename=None,sessions,hashes):
+	def __init__(self,sessions={},hashes={},filename=None):
 		"""Session and hashes should be dictionary-like structures."""
 		# Base class initialization
-		LogParser.__init__(self,filename)
+		LogParser.LogParser.__init__(self,filename)
 		
 		# Now, our instance-menbers
 		# session[ addr] -> {user_hash, ts_begin, ts_end, bytes,hash}
@@ -78,7 +78,7 @@ class FirstPass(LogParser.LogParser):
 		else:
 			self.sessions[addr]['hashes_bytes'][hash] += length
 		# updates hashe's byte hit
-		it hash not in self.hashes:
+		if hash not in self.hashes:
 			self.hashes[hash] = { 'names':[], 'bytes': length}
 		else:
 			self.hashes[hash]['bytes'] += length
