@@ -1,7 +1,7 @@
 /**@file e2k_proto.c
  * @brief edonkey protocol handling funtions
  * @author Tiago Alves Macambira
- * @version $Id: e2k_proto.c,v 1.10 2004-08-28 22:21:06 tmacam Exp $
+ * @version $Id: e2k_proto.c,v 1.11 2004-08-30 21:23:28 tmacam Exp $
  * 
  * 
  * Based on sample code provided with libnids and copyright (c) 1999
@@ -126,7 +126,7 @@ static unsigned char* e2k_special_tags_hash[LAST_KNOWN_STAG + 1] = {
  *
  * ******************************************************************** */
 
-int e2k_proto_handle_metalist(struct e2k_metalist_t* metalist)
+void e2k_proto_handle_metalist(struct e2k_metalist_t* metalist)
 {
 	dword i = 0;
 	int offset = 0;
@@ -312,6 +312,7 @@ inline void e2k_proto_handle_emule_data_compressed(struct e2k_packet_emule_data_
 
 	/* Compressed-data-related setup */
 	zip_state = &connection->zip_state;
+	assert(&connection->zip_state == &(connection->zip_state));
 	data_len = packet->header.packet_size - COMPRESSED_DATA_HEADER_LEN;
 
 	
