@@ -1,7 +1,7 @@
 /**@file e2k_defs.h
  * @brief Common edonkey definitions
  * @author Tiago Alves Macambira
- * @version $Id: e2k_defs.h,v 1.8 2004-03-03 06:40:38 tmacam Exp $
+ * @version $Id: e2k_defs.h,v 1.9 2004-03-03 07:57:30 tmacam Exp $
  * 
  */
 
@@ -16,8 +16,10 @@
 #define EDONKEY_MSG_REQUEST_PARTS 0x47
 #define EDONKEY_MSG_SENDING_PART 0x46
 #define EDONKEY_MSG_FILE_STATUS 0x50 
+#define EDONKEY_MSG_QUEUE_RANK 0x5c
 
 #define EMULE_MSG_DATA_COMPRESSED 0x40
+#define EMULE_MSG_QUEUE_RANKING 0x60
 
 /** The size of <uchar proto><dword pkt_len><uchar msg_type>*/
 #define EDONKEY_HEADER_SIZE 6
@@ -76,3 +78,12 @@ struct e2k_packet_file_status_t {
 	byte bitmap; /*assume bitmap as an array*/
 }__attribute__ ((packed));
 
+struct e2k_packet_queue_rank_t {
+	struct e2k_header_t header;
+	dword rank;
+}__attribute__ ((packed));
+
+struct e2k_packet_emule_queue_ranking_t {
+	struct e2k_header_t header;
+	word rank;
+}__attribute__ ((packed));

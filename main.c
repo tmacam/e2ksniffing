@@ -1,6 +1,6 @@
 /* 
  * @author Tiago Alves Macambira
- * @version $Id: main.c,v 1.13 2004-03-03 06:40:38 tmacam Exp $
+ * @version $Id: main.c,v 1.14 2004-03-03 07:57:30 tmacam Exp $
  * 
  * 
  * Based on sample code provided with libnids and copyright (c) 1999
@@ -183,6 +183,12 @@ void handle_edonkey_packet(int is_server, char *pkt_data, char *address_str)
 				status_pkt->len,
 				bitmap_hex_str);
 			free(bitmap_hex_str);
+		} else if (hdr->msg == EDONKEY_MSG_QUEUE_RANK ) {
+			struct e2k_packet_queue_rank_t *rank_pkt = NULL;
+			(void *)rank_pkt = (void *)pkt_data;
+			fprintf( stdout,
+				 "QUEUE RANK rank[%i]",
+				 rank_pkt->rank);
 		}
 	/*    for emule extension messages */
 	} else if (hdr->proto == EDONKEY_PROTO_EMULE) {
@@ -196,7 +202,14 @@ void handle_edonkey_packet(int is_server, char *pkt_data, char *address_str)
 				hash_str, 
 				emuledc_pkt->start_offset,
 				emuledc_pkt->packed_len);
+		} else if (hdr->msg == EMULE_MSG_QUEUE_RANKING ) {
+			struct e2k_packet_emule_queue_ranking_t *rank_pkt =NULL;
+			(void *)rank_pkt = (void *)pkt_data;
+			fprintf( stdout,
+				"QUEUE RANKING rank[%i]",
+				rank_pkt->rank);
 		}
+
 	}
 
 null_error:
@@ -300,6 +313,9 @@ int handle_state_wait_full_header(int is_server,
 				state->state = wait_full_packet;
 				return HANDLE_STATE_SUCCESSFUL;
 			} else {
+				/*We should ignore this bogus connection*/
+
+				fprintf( stdout,"%s proto=0x%02x msg_id=0x%02x packet_size=%i BOGUS\n", state->connection->address_str, hdr->proto, hdr->msg, hdr->packet_size);
 				conn_state_t* conn_state = state->connection;
 				conn_state->client.state = ignore_connection;
 				conn_state->server.state = ignore_connection;
