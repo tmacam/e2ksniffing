@@ -1,7 +1,7 @@
 /**@file e2k_defs.h
  * @brief Common edonkey definitions
  * @author Tiago Alves Macambira
- * @version $Id: e2k_defs.h,v 1.17 2004-08-18 20:58:00 tmacam Exp $
+ * @version $Id: e2k_defs.h,v 1.18 2004-08-25 23:26:06 tmacam Exp $
  *
  * Some parts of this file are from ethereal's packet-edonkey.{c,h}, and
  * thus covered by it's own licence (GPL compat)
@@ -196,6 +196,7 @@ struct e2k_packet_emule_data_compressed_t{
 	struct e2k_hash_t hash;
 	dword start_offset;
 	dword packed_len;
+	byte data; /*assume data as an array*/
 }__attribute__ ((packed));
 
 /*<HASH><word len><char[(len+7)/8] data>*/

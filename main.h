@@ -1,7 +1,7 @@
 /**@file main.h
  * @brief main - Program, libs, and logging facilities setup and handling
  * @author Tiago Alves Macambira
- * @version $Id: main.h,v 1.10 2004-08-18 20:58:01 tmacam Exp $
+ * @version $Id: main.h,v 1.11 2004-08-25 23:26:06 tmacam Exp $
  * 
  * Based on sample code provided with libnids and copyright (c) 1999
  * Rafal Wojtczuk <nergal@avet.com.pl>. All rights reserved.
@@ -18,6 +18,7 @@
 
 #include "e2k_defs.h"
 #include "writers_pool.h"
+#include "e2k_zip.h"
 
 /* ********************************************************************  
  *  Global defines - configuration 
@@ -29,7 +30,7 @@
 #define LOGROTATE_INTERVAL 15*60
 #define LOGROTATE_MAX_SIZE 10*1024*1024
 #define LOGROTATE_WITH_N_PACKETS 100;
-#define E2K_WRITER_POOL_SAVE_PATH "/tmp"
+#define E2K_WRITER_POOL_SAVE_PATH "/tmp/cache/"
 
 #define UDP_NICE_INCREMENT 10
 
@@ -109,6 +110,10 @@ struct conn_state_t {
 	struct e2k_hash_t download_hash;
 	/** writer of the file being downloaded associated writer */
 	writers_pool_writer_t download_writer;
+	/** serial number of this connections during the current execution */
+	dword connection_id;
+	/** EMULE COMPRESSED DATA support and state structures.  */
+	e2k_zip_state_t zip_state;
 };
 
 

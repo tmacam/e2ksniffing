@@ -1,7 +1,7 @@
 /**@file e2k_proto.c
  * @brief edonkey protocol handling funtions
  * @author Tiago Alves Macambira
- * @version $Id: e2k_proto.c,v 1.8 2004-08-20 21:37:26 tmacam Exp $
+ * @version $Id: e2k_proto.c,v 1.9 2004-08-25 23:26:06 tmacam Exp $
  * 
  * 
  * Based on sample code provided with libnids and copyright (c) 1999
@@ -16,7 +16,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-#include <strings.h>
+#include <string.h>
 #include <assert.h>
 
 #include "e2k_defs.h"
@@ -27,6 +27,8 @@
 /* ********************************************************************  
  *  Private functions
  * ******************************************************************** */
+
+#define _COMPRESSED_DATA_HEADER_LEN (sizeof(struct e2k_packet_emule_data_compressed_t) - 1)
 
 static inline int hashes_are_equal(const struct e2k_hash_t* h1,
 		const struct e2k_hash_t* h2)
@@ -213,7 +215,9 @@ inline void e2k_proto_handle_sending_part(struct e2k_packet_sending_part_t* pack
 		packet->start_offset, packet->end_offset);
 
 	/* Oportunistic caching of downloaded files support */
-	if(connection->download_writer != NULL){
+	if ( (connection->download_writer != NULL) &&
+	     hashes_are_equal(&connection->download_hash,&packet->hash) )
+	{
 		res = writers_pool_writer_write(connection->download_writer,
 			packet->start_offset,
 			packet->end_offset,
@@ -271,12 +275,66 @@ inline void e2k_proto_handle_generic_emule_hello(struct e2k_packet_emule_hello_t
 	e2k_proto_handle_metalist(&packet->meta_tag_list);
 }
 			
-inline void e2k_proto_handle_emule_data_compressed(struct e2k_packet_emule_data_compressed_t* packet)
+inline void e2k_proto_handle_emule_data_compressed(struct e2k_packet_emule_data_compressed_t* packet, conn_state_t* connection)
 {
+	int res;
+	dword len_unzipped, start_pos;
+	e2k_zip_state_t* zip_state;
+	
 	fprintf(stdout,"EMULE COMPRESSED DATA hash[");
 	fprintf_e2k_hash(stdout, &packet->hash);
 	fprintf(stdout,"] offset[%u,%u]",
 		packet->start_offset,packet->packed_len);
+
+	/* Compressed-data-related setup */
+	zip_state = &connection->zip_state;
+	/* Is this the begining of a new chunk of COMPRESSED DATA pkts ? */
+	if ( zip_state->in_use && (zip_state->start != packet->start_offset) ) {
+		res = e2k_zip_destroy(zip_state);
+		assert( res == E2K_ZIP_OK );	
+	}
+	/* Again, is this the start of a new chunk? */
+	if ( !zip_state->in_use) {
+		/* New chunk of COMPRESSED DATA ahead
+		 * Start decompression engine
+		 */
+		res = e2k_zip_init(zip_state);
+		/* Sanity check for future usage */
+		zip_state->start = packet->start_offset;
+		assert( res == E2K_ZIP_OK );
+	}
+	res = e2k_zip_unzip(zip_state, &len_unzipped,
+		packet->header.packet_size - _COMPRESSED_DATA_HEADER_LEN,
+		&packet->data, 0 );
+	start_pos = zip_state->start + zip_state->total_unzipped -
+		len_unzipped;
+	fprintf(stdout, " LEN:%lu START:%lu IN av:%u tot:%lu OUT av:%u tot:%lu  MSG:%s",
+			len_unzipped,
+			start_pos,
+			zip_state->zs.avail_in,
+			zip_state->zs.total_in,
+			zip_state->zs.avail_out,
+			zip_state->zs.total_out,
+			zip_state->zs.msg
+			);
+	if ( res != E2K_ZIP_OK ){
+		fprintf (stdout, " *** FAILED [%i] *** ", res);
+		return;
+	}
+
+	/* Oportunistic caching of downloaded files support */
+	if ( (connection->download_writer != NULL) &&
+	     hashes_are_equal(&connection->download_hash,&packet->hash) )
+	{
+		start_pos = zip_state->start + zip_state->total_unzipped -
+			len_unzipped;
+		res = writers_pool_writer_write(connection->download_writer,
+			start_pos,
+			start_pos + len_unzipped , /*end is not inclusive*/
+			zip_state->unzipped_buf);
+		assert( res == WRITERS_POOL_OK );
+	}
+	
 }
 
 inline void e2k_proto_request_parts( struct e2k_packet_request_parts_t *packet,
@@ -297,6 +355,7 @@ inline void e2k_proto_request_parts( struct e2k_packet_request_parts_t *packet,
 	
 	/* Oportunistic caching of downloaded files support */
 	if ( ! hashes_are_equal(&connection->download_hash,&packet->hash)){
+		/* FragmentedWriter setup */
 		if( connection->download_writer != NULL){
 			res = writers_pool_writer_release(w_pool,
                                 hash2str(&connection->download_hash));
@@ -307,6 +366,10 @@ inline void e2k_proto_request_parts( struct e2k_packet_request_parts_t *packet,
 				hash2str(&connection->download_hash));
 		assert( connection->download_writer != NULL );
 	}
+	/* Compressed-data-related setup */
+	/*res = e2k_zip_destroy(&connection->zip_state);
+	connection->zip_state.start = packet->start_offset_1;
+	assert( res == E2K_ZIP_OK );*/
 }
 
 inline void e2k_proto_handle_file_status(struct e2k_packet_file_status_t *packet)
@@ -343,7 +406,8 @@ void handle_edonkey_packet(int is_server, char *pkt_data, char *address_str,
 	/* Print basic log line */
 	direction = is_server ? "[S]" : "[C]";
 	fprintf( stdout,
-		 "%s %s%s proto=0x%02x msg_id=0x%02x size=%u ", strtimestamp(),
+		 "[%s][%07u] %s%s proto=0x%02x msg_id=0x%02x size=%u ",
+		 strtimestamp(), connection->connection_id,
 		 address_str, direction, hdr->proto, hdr->msg,hdr->packet_size);
 
 	/* Print extra information for some message types */
@@ -382,7 +446,8 @@ void handle_edonkey_packet(int is_server, char *pkt_data, char *address_str,
 			e2k_proto_handle_generic_emule_hello( (void*)pkt_data,
 							       "HELLO ANSWER");
 		} else if (hdr->msg == EMULE_MSG_DATA_COMPRESSED) {
-			e2k_proto_handle_emule_data_compressed((void*)pkt_data);
+			e2k_proto_handle_emule_data_compressed((void*)pkt_data,
+					connection);
 		} else if (hdr->msg == EMULE_MSG_QUEUE_RANKING ) {
 			e2k_proto_handle_emule_queue_ranking ((void*)pkt_data);
 		}

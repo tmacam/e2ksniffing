@@ -1,3 +1,7 @@
+BUGS:
+ * assert (offset_end - offset_start) <= (packet_len - header)
+
+
 Programming Task
 ALL =============================
 * analisar o ListenSocket.cpp do amule para ver como ele remove 

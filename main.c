@@ -1,7 +1,7 @@
 /**@file main.c
  * @brief main - Program, libs, and logging facilities setup and handling
  * @author Tiago Alves Macambira
- * @version $Id: main.c,v 1.29 2004-08-18 20:58:01 tmacam Exp $
+ * @version $Id: main.c,v 1.30 2004-08-25 23:26:06 tmacam Exp $
  * 
  * 
  * Based on sample code provided with libnids and copyright (c) 1999
@@ -56,7 +56,8 @@
 unsigned char e2ksniff_errbuf[256];
 
 pcap_t* pcap_descriptor = NULL;
-long int n_connections;
+unsigned long int n_active_connections;
+dword n_seen_connections;
 time_t next_syslog_report_time = 0;
 int is_sniffing = 0;
 writers_pool_t w_pool = NULL;
@@ -83,15 +84,20 @@ inline void handle_tcp_close(struct tcp_stream *a_tcp, conn_state_t **conn_state
 		writers_pool_writer_release(w_pool,
 				hash2str(&conn_state->download_hash));
 	}
+	/* Release any EDONKEY COMPRESSED DATA support and state structures */
+	if(conn_state->zip_state.in_use){
+		e2k_zip_destroy(&conn_state->zip_state);
+	}
 	
-	fprintf(stdout,"%s %s closed\n",strtimestamp(),conn_state->address_str);
+	fprintf(stdout,"[%s][%07u] %s closed\n", strtimestamp(),
+			conn_state->connection_id, conn_state->address_str);
 	/* free conn. related data */
 	free(conn_state);
 	*conn_state_ptr=NULL;
 	/* connection was closed normally */
 
 	/* Statistics */
-	n_connections--;
+	n_active_connections--;
 }
 
 inline void handle_tcp_data(struct tcp_stream *a_tcp, conn_state_t **conn_state_ptr)
@@ -164,6 +170,7 @@ inline void handle_tcp_establish(struct tcp_stream *a_tcp, conn_state_t **conn_s
 	 * - clear (i.e., set to the defaults) */
 	bzero(conn_state,sizeof( conn_state_t)); 
 	conn_state->ignore = 0;
+	conn_state->connection_id = n_seen_connections++;
 	/* - address_str */
 	strncpy(conn_state->address_str, address_str(a_tcp->addr),
 			CONN_STATE_ADDRESS_STR_SZ -1);
@@ -183,13 +190,16 @@ inline void handle_tcp_establish(struct tcp_stream *a_tcp, conn_state_t **conn_s
 	 * conn_state->download_hash = ...
 	 * conn_state->download_writer = NULL;
 	 */
+	/* EMULE COMPRESSED DATA support and state structures
+	 * 	-> bzero took care of them
+	 * conn_state->zip_state = NULL;
+	 */
 
-	fprintf( stdout,
-		 "%s %s established\n",
-		 strtimestamp(),conn_state->address_str);
+	fprintf( stdout, "[%s][%07u] %s established\n", strtimestamp(),
+		 conn_state->connection_id, conn_state->address_str);
 
 	/* Statistics */
-	n_connections++;
+	n_active_connections++;
 	if (time(NULL) > next_syslog_report_time){ /*FIXME not portable*/
 		syslog_drops();
 		next_syslog_report_time = time(NULL) + SYSLOG_REPORT_INTERVAL;
@@ -317,14 +327,14 @@ void syslog_drops(void)
 		syslog( nids_params.syslog_level,
 			" == Statistics: Droped Packets: %i, Active Connections: %i, Received Packtes: %i",
 			stat.ps_drop,
-			n_connections,
+			n_active_connections,
 			stat.ps_recv);
 		/* Eu não confio mais em nada! E chega de comentários
 		 * em inglês!*/
 		fprintf( stdout,
 			 " == Statistics: Droped Packets: %i, Active Connections: %i, Received Packtes: %i\n",
 			 stat.ps_drop,
-			n_connections,
+			n_active_connections,
 			stat.ps_recv);
 	}
 }
@@ -427,7 +437,8 @@ int main(int argc, char* argv[])
 {
 	
 	/* Initial local setup - counters, syslog, etc */
-	n_connections = 0;
+	n_active_connections = 0;
+	n_seen_connections = 0;
 	is_sniffing = 0;
 	next_syslog_report_time = time(NULL);
 	pcap_descriptor = NULL; /* setted @ syslog_drops() */
@@ -445,13 +456,14 @@ int main(int argc, char* argv[])
 	
 	/* Setup libNIDS - defaults */
 	nids_params.device = "any";
-	nids_params.pcap_filter = "port 4662";
+	//nids_params.pcap_filter = "port 4662";
 	nids_params.one_loop_less = 0; /* We depend of this semantic */
 	nids_params.scan_num_hosts = 0; /* Turn port-scan detection off */
+	nids_params.scan_num_ports = 0; /* Turn port-scan detection off */
 	nids_params.no_mem = out_of_memory_callback;
-	nids_params.n_hosts=1024*16; /* FIXME value too small? */
-	nids_params.n_tcp_streams = 1024*128;
-	nids_params.sk_buff_size = 1024*64;
+	nids_params.n_hosts=1024*4; /* FIXME value too small? */
+	nids_params.n_tcp_streams = 1024*64;
+	nids_params.sk_buff_size = 1600; 
 
 	/* Load recorded trace-file or sniff the network?*/
 	if (argc > 1){
