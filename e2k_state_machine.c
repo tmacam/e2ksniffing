@@ -1,7 +1,7 @@
 /**@file e2k_state_machine.c
  * @brief edonkey state-machine control function
  * @author Tiago Alves Macambira
- * @version $Id: e2k_state_machine.c,v 1.7 2004-03-26 21:01:19 tmacam Exp $
+ * @version $Id: e2k_state_machine.c,v 1.8 2004-03-26 21:07:58 tmacam Exp $
  * 
  * 
  * Based on sample code provided with libnids and copyright (c) 1999
@@ -169,7 +169,7 @@ int handle_state_wait_full_packet( int is_server,
 		 * let's wait for the next packet header */
 		state->state= wait_full_header;
 		/* FIXME:  are we going backwards in the stream? */
-		assert(state->next_packet_offset > following_packet_offset);
+		assert(state->next_packet_offset < following_packet_offset);
 		state->next_packet_offset = following_packet_offset;
 		return HANDLE_STATE_SUCCESSFUL;
 	} else {
