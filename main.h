@@ -1,7 +1,7 @@
 /**@file main.h
  * @brief main - Program, libs, and logging facilities setup and handling
  * @author Tiago Alves Macambira
- * @version $Id: main.h,v 1.7 2004-03-21 20:24:09 tmacam Exp $
+ * @version $Id: main.h,v 1.8 2004-04-01 22:03:59 tmacam Exp $
  * 
  * Based on sample code provided with libnids and copyright (c) 1999
  * Rafal Wojtczuk <nergal@avet.com.pl>. All rights reserved.
@@ -26,6 +26,8 @@
 #define LOGROTATE_INTERVAL 15*60
 #define LOGROTATE_MAX_SIZE 10*1024*1024
 #define LOGROTATE_WITH_N_PACKETS 100;
+
+#define UDP_NICE_INCREMENT 10
 
 /* ********************************************************************  
  *  Global defines - debug

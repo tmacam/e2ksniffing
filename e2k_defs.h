@@ -1,7 +1,7 @@
 /**@file e2k_defs.h
  * @brief Common edonkey definitions
  * @author Tiago Alves Macambira
- * @version $Id: e2k_defs.h,v 1.14 2004-03-26 20:00:49 tmacam Exp $
+ * @version $Id: e2k_defs.h,v 1.15 2004-04-01 22:03:59 tmacam Exp $
  *
  * Some parts of this file are from ethereal's packet-edonkey.{c,h}, and
  * thus covered by it's own licence (GPL compat)
@@ -39,6 +39,8 @@
 #define EDONKEY_MSG_SENDING_PART 0x46
 #define EDONKEY_MSG_FILE_STATUS 0x50 
 #define EDONKEY_MSG_QUEUE_RANK 0x5c
+
+#define EDONKEY_MSG_UDP_SEARCH_FILE_RESULTS 0x99
 
 #define EMULE_MSG_HELLO	0x01
 #define EMULE_MSG_HELLO_ANSWER	0x02
@@ -129,10 +131,25 @@ struct e2k_client_info_t{
 	struct e2k_metalist_tag_t meta_tag_list;
 }__attribute__((packed));
 
+struct e2k_file_info_t{
+	/* <File hash> <Client ID> <Port> <*Meta* list> */
+	struct e2k_hash_t file_hash;
+	dword client_id;
+	word port;
+	struct e2k_metalist_tag_t meta_tag_list;
+}__attribute__((packed));
+
 struct e2k_header_t {
 	/** The type of the protocol */
 	byte proto;
 	dword packet_size;
+	byte msg;
+}__attribute__ ((packed));
+
+struct e2k_udp_header_t {
+	/** The type of the protocol */
+	byte proto;
+	/** The message this packet transports */
 	byte msg;
 }__attribute__ ((packed));
 
@@ -208,5 +225,9 @@ struct e2k_packet_emule_queue_ranking_t {
 	word rank;
 }__attribute__ ((packed));
 
+struct e2k_udp_packet_file_search_answer_t{
+	struct e2k_udp_header_t header;
+	struct e2k_file_info_t file_info;
+}__attribute__ ((packed));
 
 #endif /* ifndef _E2K_DEFS__H_ */

@@ -1,4 +1,5 @@
 Programming Task
+ALL =============================
 * analisar o ListenSocket.cpp do amule para ver como ele remove 
   pacotes doidos/insanos...
 * Verificar como funciona o SourceExchange
@@ -8,5 +9,7 @@ Programming Task
 * erros dentro da metalist
 * rodar essa porra no valgrind
 * Zlib support (compressed packets, sending compressed )
+UDP ==============================
+* Pegar mais metadados para colocar no core... (convêm salvar todo o metatag?!)
 
 Implantação da Arquitetura
