@@ -1,6 +1,6 @@
 /* 
  * @author Tiago Alves Macambira
- * @version $Id: main.h,v 1.3 2004-02-12 13:42:39 tmacam Exp $
+ * @version $Id: main.h,v 1.4 2004-03-03 06:40:38 tmacam Exp $
  * 
  * 
  * 
@@ -20,7 +20,9 @@ enum sniff_state {
 	/** we are just skiping till the begining of the next header */
 	skip_full_packet,
 	/** we are waiting for enought data to read the next packet */
-	wait_full_packet
+	wait_full_packet,
+	/** the connection is uninteresting now */
+	ignore_connection,
 };
 
 typedef struct conn_state_t conn_state_t; /* forward declaration */
@@ -34,6 +36,8 @@ typedef struct half_conn_state_t {
 	int next_packet_offset;
 	/** The connection this half-stream belongs */
 	conn_state_t* connection;
+	/** says if this side was blessed as a known edonkey connection*/
+	int blessed;
 } half_conn_state_t;
 
 
@@ -58,4 +62,6 @@ struct conn_state_t {
 	/**The address of the endpoints of this connection as a string.
 	 * Exemple: 111.111.111.111:32000,222.222.222.222:15000 */
 	unsigned char address_str[CONN_STATE_ADDRESS_STR_SZ];
+	/** Should this connection be ignored ?*/
+	int ignore;
 };

@@ -1,6 +1,6 @@
 /* 
  * @author Tiago Alves Macambira
- * @version $Id: main.c,v 1.12 2004-03-03 04:42:27 tmacam Exp $
+ * @version $Id: main.c,v 1.13 2004-03-03 06:40:38 tmacam Exp $
  * 
  * 
  * Based on sample code provided with libnids and copyright (c) 1999
@@ -284,11 +284,29 @@ int handle_state_wait_full_header(int is_server,
 		/* Read header data */
 		(void*)hdr = (void*)(halfstream->data + offset_shift);
 		/* Don't we perl lovers/haters adore verbose outputs? */
-		/*fprintf(stdout,"Header > %s proto=0x%02x packet_size=%i msg_id=0x%02x\n", address_str(a_tcp->addr), hdr->proto, hdr->packet_size, hdr->msg);*/
+		/*fprintf(stdout,"Header > %s proto=0x%02x packet_size=%i msg_id=0x%02x\n", state->connection->address_str, hdr->proto, hdr->packet_size, hdr->msg);*/
 #endif
 		/* Enough data - change state */
-		state->state = wait_full_packet;
-		return HANDLE_STATE_SUCCESSFUL;
+		if (state->blessed) {
+			state->state = wait_full_packet;
+			return HANDLE_STATE_SUCCESSFUL;
+		} else {
+			/* Unblessed. Does it seem like a edonkey conn.? */
+			if ( (hdr->msg == EDONKEY_MSG_HELLO) && 
+			     ( (hdr->proto == EDONKEY_PROTO_EDONKEY) ||
+			       (hdr->proto == EDONKEY_PROTO_EMULE) ) )
+			{
+				state->blessed = 1;
+				state->state = wait_full_packet;
+				return HANDLE_STATE_SUCCESSFUL;
+			} else {
+				conn_state_t* conn_state = state->connection;
+				conn_state->client.state = ignore_connection;
+				conn_state->server.state = ignore_connection;
+				conn_state->ignore = 1;
+				return HANDLE_STATE_NEED_MORE_DATA;
+			}
+		}
 	}
 }
 
@@ -395,8 +413,6 @@ int handle_state_skip_full_packet(int is_server,
 	}
 }
 
-
-
 /**@brief Controls new data processing - state machine control loop
  *
  * Summing up: basic state machine control.
@@ -442,6 +458,11 @@ unsigned int handle_halfstream_data(int is_server,
 				need_more_data = handle_state_skip_full_packet(
 						is_server,halfstream,state);
 				break;
+			case ignore_connection:
+				return 0; /* get out of HERE FAST!!! */
+				break;
+							
+				
 		}
 	}
 	/* Need more data. If the next packet is beyond the end of the
@@ -460,11 +481,32 @@ unsigned int handle_halfstream_data(int is_server,
  * Sniffing control functions
  * ******************************************************************** */
 
+inline void handle_tcp_close(struct tcp_stream *a_tcp, conn_state_t **conn_state_ptr)
+{
+	conn_state_t* conn_state = *conn_state_ptr;
+	
+	/* Ignore both client and server-side streams */
+	a_tcp->client.collect = 0;
+	a_tcp->server.collect = 0; 
+	
+	fprintf(stdout, "%s closed\n", conn_state->address_str);
+	/* free conn. related data */
+	free(conn_state);
+	*conn_state_ptr=NULL;
+	/* connection was closed normally */
+}
+
 inline void handle_tcp_data(struct tcp_stream *a_tcp, conn_state_t **conn_state_ptr)
 {
 	conn_state_t* conn_state = *conn_state_ptr;
 	unsigned int discard_amount = 0;
 	int debug = 0; /*FIXME*/
+
+	/*Should we process this TCP connection? */
+	if (conn_state->ignore){
+		fprintf( stdout, "%s ignoring\n", conn_state->address_str);
+		handle_tcp_close(a_tcp,conn_state_ptr);
+	}
 
 	/* So, where is this new data comming from? */
 	if (a_tcp->client.count_new > 0){
@@ -481,7 +523,7 @@ inline void handle_tcp_data(struct tcp_stream *a_tcp, conn_state_t **conn_state_
 	}
 
 	if(debug > 2){
-		fprintf(stderr,"\n\n\nSERVER AND CLIENT DATA ARRIVED SIMUTANEOUSLY!!!!\n\n\n");
+		fprintf(stderr,"\n\n\n == SERVER AND CLIENT DATA ARRIVED SIMUTANEOUSLY!!!!\n\n\n");
 		exit(1);
 	}
 	nids_discard(a_tcp, discard_amount);
@@ -503,6 +545,7 @@ inline void handle_tcp_establish(struct tcp_stream *a_tcp, conn_state_t **conn_s
 	*conn_state_ptr = conn_state;
 	
 	/* Setup state tracking structures */
+	conn_state->ignore = 0;
 	/* - address_str */
 	strncpy(conn_state->address_str, address_str(a_tcp->addr),
 			CONN_STATE_ADDRESS_STR_SZ -1);
@@ -511,24 +554,17 @@ inline void handle_tcp_establish(struct tcp_stream *a_tcp, conn_state_t **conn_s
 	conn_state->client.next_packet_offset = 0;
 	conn_state->client.state = wait_full_header;
 	conn_state->client.connection = conn_state;
+	conn_state->client.blessed = 0;
 	/* - server-side state-machine*/
 	conn_state->server.next_packet_offset = 0;
 	conn_state->server.state = wait_full_header;
 	conn_state->server.connection = conn_state;
+	conn_state->server.blessed = 0;
 
 	fprintf(stdout, "%s established\n", conn_state->address_str);
 }
 
-inline void handle_tcp_close(struct tcp_stream *a_tcp, conn_state_t **conn_state_ptr)
-{
-	conn_state_t* conn_state = *conn_state_ptr;
-	
-	fprintf(stdout, "%s closing\n", conn_state->address_str);
-	/* free conn. related data */
-	free(conn_state);
-	*conn_state_ptr=NULL;
-	/* connection was closed normally */
-}
+
 
 void tcp_callback(struct tcp_stream *a_tcp, conn_state_t **conn_state_ptr)
 {
