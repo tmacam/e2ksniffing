@@ -1,6 +1,6 @@
 /* 
  * @author Tiago Alves Macambira
- * @version $Id: main.c,v 1.6 2004-02-12 13:42:39 tmacam Exp $
+ * @version $Id: main.c,v 1.7 2004-02-15 04:18:17 tmacam Exp $
  * 
  * 
  * Based on sample code provided with libnids and copyright (c) 1999
@@ -92,6 +92,7 @@ void handle_edonkey_packet(int is_server, char *pkt_data, char *address_str)
 {
 	struct e2k_header_t *hdr= NULL;
 	struct e2k_packet_file_request_t *file_req = NULL;
+	char *direction = NULL;
 	
 	(void*)hdr = (void*)pkt_data;
 	(void *)file_req = (void *)pkt_data;
@@ -100,14 +101,14 @@ void handle_edonkey_packet(int is_server, char *pkt_data, char *address_str)
 		print_hash("File request from",address_str, &(file_req->hash));
 	} else if ( hdr->msg == EDONKEY_REQUEST_PARTS_OPCODE ){
 		print_hash("Request parts from",address_str, &(file_req->hash));
-	}
-#ifdef BE_VERBOSE
-	char* direction = is_server ? "[S]" : "[C]";
+	};
+/*#ifdef BE_VERBOSE*/
+	direction = is_server ? "[S]" : "[C]";
 	fprintf( stdout,
 		 "E2K pkt> %s%s proto=0x%02x size=%i msg_id=0x%02x\n",
 		 address_str,direction, hdr->proto,
 		 hdr->packet_size, hdr->msg);
-#endif
+/*#endif*/
 	
 }
 
@@ -482,7 +483,7 @@ int main(int argc, char* argv[])
 	/* nids_params.n_hosts=256; * FIXME value too small? */
 
 	/* Load recorded trace-file or sniff the network?*/
-	if (argc> 0){
+	if (argc > 1){
 		nids_params.device = NULL;
 		nids_params.filename = argv[1];
 		printf("Loading trace file: %s\n",nids_params.filename );
