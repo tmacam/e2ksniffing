@@ -2,7 +2,7 @@
  * @brief Structures and fuctions to handle emule compressed data packets -
  * 	  Implementation
  * @author Tiago Alves Macambira
- * @version $Id: e2k_zip.c,v 1.2 2004-08-28 22:21:06 tmacam Exp $
+ * @version $Id: e2k_zip.c,v 1.3 2004-08-30 21:25:22 tmacam Exp $
  *
  * Some parts of this file are from aMule 1.2.6 DownloadClient.cpp , and
  * thus covered by it's own licence (GPL compat)
@@ -71,6 +71,7 @@ int e2k_zip_destroy(e2k_zip_state_t* zip_state)
 		};
 		if (zip_state->unzipped_buf){
 			free(zip_state->unzipped_buf);
+			zip_state->unzipped_buf = NULL;
 		}
 		zip_state->in_use = 0;
 	} 
@@ -99,8 +100,8 @@ int e2k_zip_init(e2k_zip_state_t* zip_state)
 		return E2K_ZIP_ERR;
 	}
 	
-	/* Initialise stream values -=- Done by calloc
-	 *
+	/* Initialise stream values -=- Done by calloc/bzero
+	 * zip_state->ignore = 0;
 	 * zip_state->zs.zalloc = (alloc_func)0;
 	 * zip_state->zs.zfree = (free_func)0;
 	 * zip_state->zs.opaque = (voidpf)0;
