@@ -10,9 +10,11 @@ O log deve ser passado para essa script pela STDIN.
 Ao final de sua execução teremos os seguintes arquivos:
 session.{bdb,gdb,db}
 hash.{bdb,gdbm,db}
+
+$Id: FirstPass.py,v 1.3 2004-04-05 03:05:52 tmacam Exp $
 """
 
-from cPickle import load, dump
+import sys
 import LogParser
 import shelve
 
@@ -58,7 +60,7 @@ class FirstPass(LogParser.LogParser):
 	def updateSessionTimestamps(self,addr,ts):
 		"""Name says all. If this session is unknown,
 		add it to the known sessions dict."""
-		if addr  not in self.sessions:
+		if not self.sessions.has_key(addr):
 			self.sessions[addr] = { 'user_hash':	None,
 						'ts_begin':	ts,
 						'ts_end': 	ts,
@@ -73,12 +75,12 @@ class FirstPass(LogParser.LogParser):
 		ts,addr = self.getPrefix()
 		self.updateSessionTimestamps(addr,ts)
 		# Updates session's byte hit
-		if hash not in self.sessions[addr]['hashes_bytes']:
+		if not self.sessions[addr]['hashes_bytes'].has_key(hash):
 			self.sessions[addr]['hashes_bytes'][hash] = length
 		else:
 			self.sessions[addr]['hashes_bytes'][hash] += length
 		# updates hashe's byte hit
-		if hash not in self.hashes:
+		if not self.hashes.has_key(hash):
 			self.hashes[hash] = { 'names':[], 'bytes': length}
 		else:
 			self.hashes[hash]['bytes'] += length
@@ -87,6 +89,7 @@ class FirstPass(LogParser.LogParser):
 	
 	def onClientHello(self,hash):
 		ts,addr = self.getPrefix()
+		sys.stderr.write("\n\naddr[%s] -=- %s\n\n"%(addr,type(addr)))
 		self.updateSessionTimestamps(addr,ts)
 		self.sessions[addr]['user_hash']=hash
 
@@ -98,8 +101,8 @@ class FirstPass(LogParser.LogParser):
 
 	def onFileRequestAnswer(self,hash,filename):
 		self.updateSessionByteHit( hash, 0)
-		if filename not in self.hashes[hash]['names']:
-			self.hashes[hash]['names'].append(name)
+		if not self.hashes[hash]['names'].has_key(filename):
+			self.hashes[hash]['names'].append(filename)
 
 	def onError(self,offending_line,offendion_exception):
 		sys.stderr.write(offending_line)
