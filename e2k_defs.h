@@ -1,9 +1,15 @@
 /**@file e2k_defs.h
  * @brief Common edonkey definitions
  * @author Tiago Alves Macambira
- * @version $Id: e2k_defs.h,v 1.10 2004-03-03 08:08:51 tmacam Exp $
- * 
+ * @version $Id: e2k_defs.h,v 1.11 2004-03-11 20:13:49 tmacam Exp $
+ *
+ * (c) Tiago Alves Macambira
+ * See COPYING for licence for further license details
+ *
  */
+
+#ifndef _E2K_DEFS__H_
+#define _E2K_DEFS__H_
 
 
 #define EDONKEY_CLIENT_PORT 4662
@@ -88,3 +94,6 @@ struct e2k_packet_emule_queue_ranking_t {
 	struct e2k_header_t header;
 	word rank;
 }__attribute__ ((packed));
+
+
+#endif /* ifndef _E2K_DEFS__H_ */

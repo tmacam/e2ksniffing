@@ -1,13 +1,33 @@
-/* 
+/**@file main.h
+ * @brief main - Program, libs, and logging facilities setup and handling
  * @author Tiago Alves Macambira
- * @version $Id: main.h,v 1.4 2004-03-03 06:40:38 tmacam Exp $
+ * @version $Id: main.h,v 1.5 2004-03-11 20:13:50 tmacam Exp $
  * 
- * 
+ * Based on sample code provided with libnids and copyright (c) 1999
+ * Rafal Wojtczuk <nergal@avet.com.pl>. All rights reserved.
+ * See the file COPYING from libnids for license details.
+ *
+ *
+ * (c) Tiago Alves Macambira
+ * See COPYING for licence for further license details
  * 
  */
 
+#ifndef _MAIN__H_
+#define _MAIN__H_
+
+/* ********************************************************************  
+ *  Global defines - configuration 
+ * ******************************************************************** */
 
 #define BE_VERBOSE
+#define UNPRIV_USER "nobody"
+#define SYSLOG_REPORT_INTERVAL 60
+
+/* ********************************************************************  
+ *  Global defines - debug
+ * ******************************************************************** */
+
 
 
 //#define BEEN_HERE do {printf("BEEN HERE: %03i\n",__LINE__);} while(0) 
@@ -65,3 +85,6 @@ struct conn_state_t {
 	/** Should this connection be ignored ?*/
 	int ignore;
 };
+
+
+#endif /* #ifndef _MAIN__H_ */
