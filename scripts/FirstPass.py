@@ -11,7 +11,7 @@ Ao final de sua execução teremos os seguintes arquivos:
 session.{bdb,gdb,db}
 hash.{bdb,gdbm,db}
 
-$Id: FirstPass.py,v 1.3 2004-04-05 03:05:52 tmacam Exp $
+$Id: FirstPass.py,v 1.4 2004-04-05 03:09:54 tmacam Exp $
 """
 
 import sys
@@ -89,7 +89,6 @@ class FirstPass(LogParser.LogParser):
 	
 	def onClientHello(self,hash):
 		ts,addr = self.getPrefix()
-		sys.stderr.write("\n\naddr[%s] -=- %s\n\n"%(addr,type(addr)))
 		self.updateSessionTimestamps(addr,ts)
 		self.sessions[addr]['user_hash']=hash
 
@@ -104,8 +103,8 @@ class FirstPass(LogParser.LogParser):
 		if not self.hashes[hash]['names'].has_key(filename):
 			self.hashes[hash]['names'].append(filename)
 
-	def onError(self,offending_line,offendion_exception):
-		sys.stderr.write(offending_line)
+	def onError(self,offending_line,offending_exception):
+		sys.stderr.write("ERROR: %s\n\t%s",offending_exception offending_line)
 
 	def onFinish(self):
 		pass
