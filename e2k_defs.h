@@ -1,6 +1,6 @@
 /* 
  * @author Tiago Alves Macambira
- * @version $Id: e2k_defs.h,v 1.1 2004-01-15 02:26:24 tmacam Exp $
+ * @version $Id: e2k_defs.h,v 1.2 2004-01-15 03:05:20 tmacam Exp $
  * 
  * 
  * 
@@ -20,6 +20,10 @@ typedef unsigned long dword;
 typedef unsigned short word;
 typedef unsigned char byte;
 
+struct e2k_hash_t {
+        byte data[16] ; /**< the 16 bytes that make a MD4 hash */
+}__attribute__ ((packed));
+
 struct e2k_header_t {
 	/** The type of the protocol */
 	byte proto;
@@ -29,5 +33,5 @@ struct e2k_header_t {
 
 struct e2k_packet_file_request_t {
 	struct e2k_header_t header;
-	byte hash[16];
+	struct e2k_hash_t hash;
 }__attribute__ ((packed));

@@ -1,6 +1,6 @@
 /* 
  * @author Tiago Alves Macambira
- * @version $Id: main.c,v 1.2 2004-01-15 02:26:24 tmacam Exp $
+ * @version $Id: main.c,v 1.3 2004-01-15 03:05:20 tmacam Exp $
  * 
  * 
  * Based on sample code provided with libnids and copyright (c) 1999
@@ -28,29 +28,33 @@
  * struct tuple4 contains addresses and port numbers of the TCP connections
  * the following auxiliary function produces a string looking like
  * 10.0.0.1,1024,10.0.0.2,23
+ *
+ * The string is returned in a statically allocated buffer,  which
+ * subsequent calls will overwrite.
  */
 const char *address_str(struct tuple4 addr)
 {
 	static char buf[256];
-	strcpy(buf, inet_ntoa(*((struct in_addr *)&(addr.saddr))));
-	sprintf(buf + strlen(buf), ":%i, ", addr.source);
-	strcpy(buf, inet_ntoa(*((struct in_addr *)&(addr.daddr))));
-	sprintf(buf + strlen(buf), ":%i", addr.dest);
+	strncpy(buf, inet_ntoa(*((struct in_addr *)&(addr.saddr))), 256);
+	snprintf(buf + strlen(buf), 256, ":%i, ", addr.source);
+	strncpy(buf, inet_ntoa(*((struct in_addr *)&(addr.daddr))),256);
+	snprintf(buf + strlen(buf), 256, ":%i", addr.dest);
 	return buf;
 }
 
-void print_hash(char* func_name,struct tcp_stream *a_tcp,  e2k_hash* hash, )
+void print_hash(char* func_name,struct tcp_stream *a_tcp,struct e2k_hash_t* hash )
 {
+	byte* hash_data = hash->data; /* Saving 16 ptrs. indirections*/
         printf("%s (%s) \tHash: '%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x'\n",
 		func_name, 
 		address_str(a_tcp->addr),
-		hash[0], hash[1], hash[2], hash[3], 
-		hash[4], hash[5], hash[6], hash[7],
-		hash[8], hash[9], hash[10],hash[11],
-		hash[12],hash[13],hash[14],hash[15]);
+		hash_data[0], hash_data[1], hash_data[2], hash_data[3], 
+		hash_data[4], hash_data[5], hash_data[6], hash_data[7],
+		hash_data[8], hash_data[9], hash_data[10],hash_data[11],
+		hash_data[12],hash_data[13],hash_data[14],hash_data[15]);
 }
 
-int get_next_packet_offset(struct half_stream *client, e2k_header_t* hdr);
+int get_next_packet_offset(struct half_stream *client, struct e2k_header_t* hdr)
 {
 	return client->offset +	EDONKEY_HEADER_SIZE -1  + hdr->packet_size;
 	/* -1 => hdr->msg (byte) is beeing counted
@@ -75,7 +79,7 @@ void handle_e2k_packet(struct tcp_stream *a_tcp)
 	if ( hdr->msg == EDONKEY_FILE_REQUEST_OPCODE){
 		struct e2k_packet_file_request_t *file_req;
 		(void *)file_req = (void *)hdr;
-		print_hash("File request from",a_tcp, file_req->hash);
+		print_hash("File request from",a_tcp, &(file_req->hash));
 	}
 }
 
@@ -94,7 +98,7 @@ void handle_state_wait_full_header(struct tcp_stream *a_tcp, conn_state_t *conn_
 	} else {
 		/* Read header data */
 		(void*)hdr = (void*)client->data;
-		fprintf(stderr, "%s\t", address_str(a_tcp->addr));i
+		fprintf(stderr, "%s\t", address_str(a_tcp->addr));
 		printf ("proto=0x%02x packet_size=%i msg_id=0x%02x\n",
 				hdr->proto, hdr->packet_size, hdr->msg);
 		/* Is the current packet a intersting one? */
@@ -122,13 +126,14 @@ void handle_state_wait_full_packet(struct tcp_stream *a_tcp, conn_state_t *conn_
 	printf("### wait_full_packet ###\n");
 
 	/* Have we got enought data? */
-	if (client->count >= (get_next_packet_offset(a_tcp->client, hdr) -1 )){
+	if (client->count >= (get_next_packet_offset(client, hdr) -1 )){
 		/* yes, we have */
 		handle_e2k_packet(a_tcp);
 		/* Since we are done with this packet,
 		 * let's wait for the next packet header */
 		conn_state->state= wait_full_header;
-		conn_state->next_packet_offset = next_packet_offset;
+		conn_state->next_packet_offset = 
+			get_next_packet_offset(client, hdr);
 	} else {
 		/*Not enought data? Keep the the one he already
 		 * have and go get some more */
@@ -165,7 +170,7 @@ void handle_state_skip_full_packet(struct tcp_stream *a_tcp, conn_state_t *conn_
 
 void handle_tcp_data(struct tcp_stream *a_tcp, conn_state_t *conn_state)
 {	
-	switch(conn->state){
+	switch(conn_state->state){
 		case wait_full_header:
 			handle_state_wait_full_header(a_tcp, conn_state);
 			break;
@@ -184,7 +189,6 @@ void tcp_callback(struct tcp_stream *a_tcp, conn_state_t **conn_state_ptr)
 {
 	conn_state_t* conn_state = NULL;
 	
-	strcpy(buf, adres(a_tcp->addr));	// we put conn params into buf
 	if (a_tcp->nids_state == NIDS_DATA) {
 		/* new data has arrived in the client site */
 		handle_tcp_data(a_tcp, *conn_state_ptr);
