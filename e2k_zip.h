@@ -1,7 +1,7 @@
 /**@file e2k_zip.h
  * @brief Structures and fuctions to handle emule compressed data packets
  * @author Tiago Alves Macambira
- * @version $Id: e2k_zip.h,v 1.1 2004-08-25 23:26:06 tmacam Exp $
+ * @version $Id: e2k_zip.h,v 1.2 2004-08-28 22:21:06 tmacam Exp $
  *
  * Some parts of this file are from aMule 1.2.6 DownloadClient.cpp , and
  * thus covered by it's own licence (GPL compat)
@@ -43,9 +43,17 @@ typedef struct e2k_zip_state_t{
 	 * e2k_zip_destroy.
 	 */
 	dword	start;
+	/** Should this stream be ignored? */
+	int ignore;
+	/** zlib's z_stream - keeps state information about the unzipping
+	 * process*/
 	z_stream zs;
+	/** the buffer where data will be unzipped. Allocated by e2k_zip_init
+	 * and destroyed by e2k_zip_destroy */
 	byte* unzipped_buf;
+	/** The length of the buffer. */
 	dword unzipped_buf_len;
+	/** the ammount of currently unzipped data present in the buffer */
 	dword total_unzipped;
 } e2k_zip_state_t;
 

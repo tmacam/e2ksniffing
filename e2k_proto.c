@@ -1,7 +1,7 @@
 /**@file e2k_proto.c
  * @brief edonkey protocol handling funtions
  * @author Tiago Alves Macambira
- * @version $Id: e2k_proto.c,v 1.9 2004-08-25 23:26:06 tmacam Exp $
+ * @version $Id: e2k_proto.c,v 1.10 2004-08-28 22:21:06 tmacam Exp $
  * 
  * 
  * Based on sample code provided with libnids and copyright (c) 1999
@@ -28,7 +28,14 @@
  *  Private functions
  * ******************************************************************** */
 
-#define _COMPRESSED_DATA_HEADER_LEN (sizeof(struct e2k_packet_emule_data_compressed_t) - 1)
+/* NOTICE:
+ *	6 = 1 + 5 = pkt.data[1 byte] + (hdr.proto + hdr.size)[5 bytes]
+ *
+ *	The size field only accounts for payload size, not for packet size
+ *
+ */
+#define COMPRESSED_DATA_HEADER_LEN (sizeof(struct e2k_packet_emule_data_compressed_t) - 6) 
+#define SENDING_DATA_HEADER_LEN (sizeof(struct e2k_packet_sending_part_t) - 6)
 
 static inline int hashes_are_equal(const struct e2k_hash_t* h1,
 		const struct e2k_hash_t* h2)
@@ -214,6 +221,20 @@ inline void e2k_proto_handle_sending_part(struct e2k_packet_sending_part_t* pack
 	fprintf(stdout,"] offset[%u,%u]",
 		packet->start_offset, packet->end_offset);
 
+	/* "Never trust the network"
+	 *
+	 *  - don't try to get more data then what is * really there
+	 */
+	if ( packet->end_offset - packet->start_offset !=
+		packet->header.packet_size - SENDING_DATA_HEADER_LEN )
+	{
+		fprintf( stderr, 
+			"ERROR: %s (%s:%i) - data offsets overflow packet size",
+			__FUNCTION__, __FILE__, __LINE__);
+		fprintf(stdout," BOGUS / CORRUPTED");
+		return;
+	}
+
 	/* Oportunistic caching of downloaded files support */
 	if ( (connection->download_writer != NULL) &&
 	     hashes_are_equal(&connection->download_hash,&packet->hash) )
@@ -278,8 +299,11 @@ inline void e2k_proto_handle_generic_emule_hello(struct e2k_packet_emule_hello_t
 inline void e2k_proto_handle_emule_data_compressed(struct e2k_packet_emule_data_compressed_t* packet, conn_state_t* connection)
 {
 	int res;
+	int data_len = 0;
 	dword len_unzipped, start_pos;
 	e2k_zip_state_t* zip_state;
+
+	static long accumulated = 0;
 	
 	fprintf(stdout,"EMULE COMPRESSED DATA hash[");
 	fprintf_e2k_hash(stdout, &packet->hash);
@@ -288,6 +312,9 @@ inline void e2k_proto_handle_emule_data_compressed(struct e2k_packet_emule_data_
 
 	/* Compressed-data-related setup */
 	zip_state = &connection->zip_state;
+	data_len = packet->header.packet_size - COMPRESSED_DATA_HEADER_LEN;
+
+	
 	/* Is this the begining of a new chunk of COMPRESSED DATA pkts ? */
 	if ( zip_state->in_use && (zip_state->start != packet->start_offset) ) {
 		res = e2k_zip_destroy(zip_state);
@@ -302,13 +329,25 @@ inline void e2k_proto_handle_emule_data_compressed(struct e2k_packet_emule_data_
 		/* Sanity check for future usage */
 		zip_state->start = packet->start_offset;
 		assert( res == E2K_ZIP_OK );
+		accumulated = 0;
 	}
-	res = e2k_zip_unzip(zip_state, &len_unzipped,
-		packet->header.packet_size - _COMPRESSED_DATA_HEADER_LEN,
-		&packet->data, 0 );
+
+	accumulated += data_len;
+
+	fprintf(stdout, " data_len:%lu accumulated:%lu missing: %lu",
+			data_len, accumulated, 
+			packet->packed_len - accumulated );
+	//return; /* Ignoring everything bellow*/
+
+
+	res = e2k_zip_unzip(zip_state, &len_unzipped, data_len, 
+			&packet->data, 0 );
 	start_pos = zip_state->start + zip_state->total_unzipped -
 		len_unzipped;
-	fprintf(stdout, " LEN:%lu START:%lu IN av:%u tot:%lu OUT av:%u tot:%lu  MSG:%s",
+	fprintf(stdout, "ACC:%i DATA_LEN:%i MISSING:%6i LEN:%6lu START:%6lu avIN:%6u totIN:%6lu avOUT:%6u totOUT:%6lu  MSG:%s",
+			accumulated,
+			data_len,
+			packet->packed_len - zip_state->zs.total_in,
 			len_unzipped,
 			start_pos,
 			zip_state->zs.avail_in,
@@ -317,8 +356,10 @@ inline void e2k_proto_handle_emule_data_compressed(struct e2k_packet_emule_data_
 			zip_state->zs.total_out,
 			zip_state->zs.msg
 			);
-	if ( res != E2K_ZIP_OK ){
+	if ( res == E2K_ZIP_ERR ){
 		fprintf (stdout, " *** FAILED [%i] *** ", res);
+		zip_state->ignore = 1;
+		//e2k_zip_destroy(zip_state);
 		return;
 	}
 

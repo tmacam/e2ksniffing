@@ -2,7 +2,7 @@
  * @brief Structures and fuctions to handle emule compressed data packets -
  * 	  Implementation
  * @author Tiago Alves Macambira
- * @version $Id: e2k_zip.c,v 1.1 2004-08-25 23:26:06 tmacam Exp $
+ * @version $Id: e2k_zip.c,v 1.2 2004-08-28 22:21:06 tmacam Exp $
  *
  * Some parts of this file are from aMule 1.2.6 DownloadClient.cpp , and
  * thus covered by it's own licence (GPL compat)
@@ -31,34 +31,27 @@ static inline void duplicate_output_buffer( e2k_zip_state_t* zip_state,
 		dword* len_unzipped, dword zipped_buf_len, z_stream* zs )
 {
 	byte* temp = NULL;
+	dword newly_unzipped_data_len = 0;
 	
 	dword new_length = zip_state->unzipped_buf_len *= 2;
 	if (new_length == 0) {
 		new_length = zipped_buf_len * 2;
 	}
 
-	/* Try realloc'ing - may be faster */
-	/*temp = realloc(zip_state->unzipped_buf, new_length);*/
-	/*if( temp == zip_state->unzipped_buf){*/
-	/*        zip_state->unzipped_buf_len = (*len_unzipped) = new_length;*/
-	/*        return;*/
-	/*}*/
+	newly_unzipped_data_len = zs->total_out - zip_state->total_unzipped;	
 	
 	/* Copy any data that was successfully unzipped to new array */
 	temp = malloc(new_length);
 	assert(temp != NULL);
-	assert( (zs->total_out - zip_state->total_unzipped) <= new_length );
-	memcpy( temp, (zip_state->unzipped_buf),
-			(zs->total_out - zip_state->total_unzipped) );
+	assert( newly_unzipped_data_len <= new_length );
+	memcpy( temp, (zip_state->unzipped_buf), newly_unzipped_data_len );
 	free(zip_state->unzipped_buf);
 	zip_state->unzipped_buf = temp;
 	zip_state->unzipped_buf_len = (*len_unzipped) = new_length;
 
 	// Position stream output to correct place in new array
-	zs->next_out = zip_state->unzipped_buf +
-		(zs->total_out - zip_state->total_unzipped);
-	zs->avail_out = (*len_unzipped) -
-		(zs->total_out - zip_state->total_unzipped);
+	zs->next_out = zip_state->unzipped_buf + newly_unzipped_data_len ;
+	zs->avail_out = new_length - newly_unzipped_data_len;
 }
 
 
@@ -107,9 +100,12 @@ int e2k_zip_init(e2k_zip_state_t* zip_state)
 	}
 	
 	/* Initialise stream values -=- Done by calloc
+	 *
 	 * zip_state->zs.zalloc = (alloc_func)0;
 	 * zip_state->zs.zfree = (free_func)0;
 	 * zip_state->zs.opaque = (voidpf)0;
+	 * zip_state->zs.next_in = 0;
+	 * zip_state->zs.avail_int = 0;
 	 */
 	zip_state->zs.next_out = zip_state->unzipped_buf;
 	zip_state->zs.avail_out = zip_state->unzipped_buf_len;
@@ -130,9 +126,14 @@ int e2k_zip_unzip(e2k_zip_state_t* zip_state, dword* len_unzipped,
 	/* Default values - assume everything fails*/
 	z_stream* zs = NULL;
 	int err = Z_DATA_ERROR;
+	dword amount_unzipped_here = 0; /* how mutch did this call unzipped?*/
 	(*len_unzipped) = 0;
 
 	assert(zip_state != NULL);
+
+	if (zip_state->ignore){
+		return E2K_ZIP_ERR;
+	}
 
 	zs = &(zip_state->zs);
 	zs->next_in  = zipped_buf;
@@ -144,7 +145,12 @@ int e2k_zip_unzip(e2k_zip_state_t* zip_state, dword* len_unzipped,
 		zs->avail_out = zip_state->unzipped_buf_len;
 	}
 
+	//assert(i_recursion ==0 );
+	
 	err = inflate(zs, Z_SYNC_FLUSH);
+
+	assert(zs->total_out >= zip_state->total_unzipped);
+	amount_unzipped_here = zs->total_out - zip_state->total_unzipped;
 
 	/* Has zip finished reading all currently available input and writing
 	 * all generated output
@@ -153,12 +159,11 @@ int e2k_zip_unzip(e2k_zip_state_t* zip_state, dword* len_unzipped,
 		/* Got a good result, set the size to the amount unzipped
 		 * in this call  (including all recursive calls)
 		 */
-		assert(zs->total_out > zip_state->total_unzipped);
-		(*len_unzipped) = (zs->total_out - zip_state->total_unzipped);
+		(*len_unzipped) = amount_unzipped_here;
 		zip_state->total_unzipped = zs->total_out;
 		fprintf(stdout," -=- Z_STREAM_END -=- ");
 
-		return E2K_ZIP_OK;
+		return E2K_ZIP_FINISED;
 	}else if ((err == Z_OK) && (zs->avail_out == 0) && (zs->avail_in != 0)){
 		/* Output array was not big enough, call recursively until
 		 * there is enough space
@@ -181,8 +186,11 @@ int e2k_zip_unzip(e2k_zip_state_t* zip_state, dword* len_unzipped,
 		 * Set the size to the amount unzipped in this call
 		 * (including all recursive calls)
 		 */
-		(*len_unzipped) = (zs->total_out - zip_state->total_unzipped);
-		zip_state->total_unzipped = zs->total_out;
+		(*len_unzipped) = amount_unzipped_here;
+		//zip_state->total_unzipped = zs->total_out;
+		err = inflate(zs, Z_SYNC_FLUSH);
+		// don't return here... return err;
+	} else if (err == Z_BUF_ERROR) {
 		return E2K_ZIP_OK;
 	} else {
 		/* Should not get here unless input data is corrupt */
@@ -192,9 +200,26 @@ int e2k_zip_unzip(e2k_zip_state_t* zip_state, dword* len_unzipped,
 		return E2K_ZIP_ERR;
 	}
 
-	assert(1 == 0); /* We should never get here! */
-	return E2K_ZIP_ERR;
+	if (err == Z_STREAM_END) {
+		/* Got a good result, set the size to the amount unzipped
+		 * in this call  (including all recursive calls)
+		 */
+		assert(zs->total_out > zip_state->total_unzipped);
+		(*len_unzipped) = amount_unzipped_here;
+		zip_state->total_unzipped = zs->total_out;
+		fprintf(stdout," -=- Z_STREAM_END -=- ");
 
+		return E2K_ZIP_OK;
+	}else if ( err == Z_BUF_ERROR){
+		zip_state->total_unzipped = zs->total_out;
+		fprintf(stdout," -=- Z_BUF_ERROR -=- ");
+		return E2K_ZIP_OK;
+	}else {
+		assert(1==0);
+		return E2K_ZIP_ERR;
+	}
+
+	assert(1 == 0); /* We should never get here! */
 }
 
 

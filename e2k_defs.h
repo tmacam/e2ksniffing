@@ -1,7 +1,7 @@
 /**@file e2k_defs.h
  * @brief Common edonkey definitions
  * @author Tiago Alves Macambira
- * @version $Id: e2k_defs.h,v 1.18 2004-08-25 23:26:06 tmacam Exp $
+ * @version $Id: e2k_defs.h,v 1.19 2004-08-28 22:21:06 tmacam Exp $
  *
  * Some parts of this file are from ethereal's packet-edonkey.{c,h}, and
  * thus covered by it's own licence (GPL compat)
@@ -19,7 +19,11 @@
  * Constants definition
  * ******************************************************************** */
 
-/** The size of <uchar proto><dword pkt_len><uchar msg_type>*/
+/** The size of <uchar proto><dword pkt_len><uchar msg_type>
+ *
+ * @warning As far as the protocol states, the minimum packet length
+ * is 5, as the msg_type field is not really part of the packet header
+ */
 #define EDONKEY_HEADER_SIZE 6
 
 #define EDONKEY_CLIENT_PORT 4662
@@ -136,10 +140,17 @@ struct e2k_file_info_t{
 	struct e2k_metalist_tag_t meta_tag_list;
 }__attribute__((packed));
 
+/**@brief A edonkey packet headr
+ * 
+ * @warning As far as the protocol states, the minimum packet length
+ * is 5, as the msg_type field is not really part of the packet header
+ */
 struct e2k_header_t {
 	/** The type of the protocol */
 	byte proto;
+	/** The size of the payload */
 	dword packet_size;
+	/** The type of message the packet contains.*/
 	byte msg;
 }__attribute__ ((packed));
 
