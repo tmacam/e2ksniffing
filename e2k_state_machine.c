@@ -1,7 +1,7 @@
 /**@file e2k_state_machine.c
  * @brief edonkey state-machine control function
  * @author Tiago Alves Macambira
- * @version $Id: e2k_state_machine.c,v 1.9 2004-08-18 20:58:00 tmacam Exp $
+ * @version $Id: e2k_state_machine.c,v 1.10 2004-10-07 17:42:52 tmacam Exp $
  * 
  * 
  * Based on sample code provided with libnids and copyright (c) 1999
@@ -131,7 +131,7 @@ int handle_state_wait_full_header(int is_server,
 			return HANDLE_STATE_SUCCESSFUL;
 		} else {
 			/* We should ignore this bogus connection */
-			fprintf( stdout,"%s %s proto=0x%02x msg_id=0x%02x packet_size=%i BOGUS\n", strtimestamp(), state->connection->address_str, hdr->proto, hdr->msg, hdr->packet_size);
+			fprintf( stdout,"[%s][%07u] %s proto=0x%02x msg_id=0x%02x packet_size=%i BOGUS / IGNORE\n", strtimestamp(), state->connection->connection_id, state->connection->address_str, hdr->proto, hdr->msg, hdr->packet_size);
 			ignore_this_connection(state->connection);
 			return HANDLE_STATE_NEED_MORE_DATA;
 		}
