@@ -11,7 +11,7 @@ Ao final de sua execução teremos os seguintes arquivos:
 session.{bdb,gdb,db}
 hash.{bdb,gdbm,db}
 
-$Id: FirstPass.py,v 1.6 2004-04-05 04:39:14 tmacam Exp $
+$Id: FirstPass.py,v 1.7 2004-04-05 04:53:21 tmacam Exp $
 """
 
 import sys
@@ -65,6 +65,8 @@ class FirstPass(LogParser.LogParser):
 		add it to the known sessions dict."""
 		if not self.sessions.has_key(addr):
 			self.sessions[addr] = { 'user_hash':	None,
+						'user_client':	None,
+						'user_server':	None,
 						'ts_begin':	ts,
 						'ts_end': 	ts,
 						'hashes_bytes':	{}}
