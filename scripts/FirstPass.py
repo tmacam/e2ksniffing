@@ -11,7 +11,7 @@ Ao final de sua execução teremos os seguintes arquivos:
 session.{bdb,gdb,db}
 hash.{bdb,gdbm,db}
 
-$Id: FirstPass.py,v 1.8 2004-04-05 04:59:53 tmacam Exp $
+$Id: FirstPass.py,v 1.9 2004-04-05 19:14:23 tmacam Exp $
 """
 
 import sys
@@ -70,8 +70,11 @@ class FirstPass(LogParser.LogParser):
 						'ts_begin':	ts,
 						'ts_end': 	ts,
 						'hashes_bytes':	{}}
-		# Updates the ts
-		self.sessions[addr]['ts_end'] = ts
+		# Updates the ts - store it in the shelve / dict
+		sess = self.sessions[addr]
+		sess['ts_end'] = ts
+		self.sessions[addr] = sess
+		
 
 	def updateSessionByteHit(self,hash,length):
 		"""Update the ByteHit of the current hash in the current
@@ -81,36 +84,42 @@ class FirstPass(LogParser.LogParser):
 		ts,addr,cs = self.getPrefix()
 		self.updateSessionTimestamps(addr,ts)
 		# Updates session's byte hit
-		if not self.sessions[addr]['hashes_bytes'].has_key(hash):
-			self.sessions[addr]['hashes_bytes'][hash] = length
+		sess = self.sessions[addr]
+		if not sess['hashes_bytes'].has_key(hash):
+			sess['hashes_bytes'][hash] = length
 		else:
-			self.sessions[addr]['hashes_bytes'][hash] += length
+			sess['hashes_bytes'][hash] += length
+		self.sessions[addr] = sess
+		
 		# updates hashe's byte hit
 		if not self.hashes.has_key(hash):
 			self.hashes[hash] = { 'names':[], 'bytes': length}
 		else:
-			self.hashes[hash]['bytes'] += length
+			h = self.hashes[hash]
+			h['bytes'] += length
+			self.hashes[hash] = h
 		# Links client_hash to the right user_<hash>
 		# See... connections can be started in both directions,
 		# so we gotta figure who is really getting the data
 		if self.sessions[addr].has_key('user_server'):
-			# Link the stuff
+			sess = self.sessions[addr]
+			# Set sess['user_hash'] according to who is receiving
+			# data
 			if cs == "S":
-				# Server is receiving a data/response message, so...
-				self.sessions[addr]['user_hash'] = \
-					self.sessions[addr]['user_server'] 
+				# Server is receiving a data/response message
+				sess['user_hash'] = sess['user_server'] 
 					
 			else:
 				# the client is the one receiving the data...
-				self.sessions[addr]['user_hash'] = \
-					self.sessions[addr]['user_client'] 
+				sess['user_hash'] = sess['user_client'] 
 			# remove these unneeded keys
 			try:
-				del self.sessions[addr]['user_client']
-				del self.sessions[addr]['user_server']
+				del sess['user_client']
+				del sess['user_server']
 			except:
 				# Go figure what can happen...
 				pass
+			self.sessions[addr] = sess
 			
 
 			
@@ -124,7 +133,9 @@ class FirstPass(LogParser.LogParser):
 		"""
 		ts,addr,cs = self.getPrefix()
 		self.updateSessionTimestamps(addr,ts)
-		self.sessions[addr]['user_client']=hash
+		sess = self.sessions[addr]
+		sess['user_client']=hash
+		self.sessions[addr] = sess
 	
 	def onClientHello(self,hash):
 		"""Registers the ClientHash of the Servent-Peer in the
@@ -133,7 +144,9 @@ class FirstPass(LogParser.LogParser):
 		"""
 		ts,addr,cs = self.getPrefix()
 		self.updateSessionTimestamps(addr,ts)
-		self.sessions[addr]['user_server']=hash
+		sess = self.sessions[addr]
+		sess['user_server']=hash
+		self.sessions[addr] = sess
 
 	def onSendingCompressed(self,hash,start,length):
 		self.updateSessionByteHit(hash,length)
@@ -144,7 +157,9 @@ class FirstPass(LogParser.LogParser):
 	def onFileRequestAnswer(self,hash,filename):
 		self.updateSessionByteHit( hash, 0)
 		if filename not in self.hashes[hash]['names']:
-			self.hashes[hash]['names'].append(filename)
+			h = self.hashes[hash]
+			h['names'].append(filename)
+			self.hashes[hash] = h
 
 	def onError(self,offending_line,offending_exception):
 		sys.stderr.write("ERROR: %s\n\t%s" %(offending_exception,offending_line))
@@ -155,15 +170,15 @@ class FirstPass(LogParser.LogParser):
 
 
 if __name__ == '__main__':
-	sessions={}	#shelve.open('sessions.shelve')
-	hashes={}	#shelve.open('hashes.shelve')
+	sessions=shelve.open('sessions.shelve')
+	hashes=shelve.open('hashes.shelve')
 	parser=FirstPass(sessions,hashes)
 	try:
 		parser.parse()
 	finally:
 		print parser.line
-		dump(parser.sessions, open('sessions.pickle','w'))
-		dump(parser.hashes, open('hashes.pickle','w'))
-		#parser.sessions.close()
-		#parser.hashes.close()
+		#dump(parser.sessions, open('sessions.pickle','w'))
+		#dump(parser.hashes, open('hashes.pickle','w'))
+		parser.sessions.close()
+		parser.hashes.close()
 
