@@ -2,7 +2,7 @@
  * @brief main - Program, libs, and logging facilities setup and handling for
  *        UDP query messages
  * @author Tiago Alves Macambira
- * @version $Id: udp_main.c,v 1.2 2004-04-01 22:31:16 tmacam Exp $
+ * @version $Id: udp_main.c,v 1.3 2004-04-01 22:49:28 tmacam Exp $
  * 
  * 
  * Based on sample code provided with libnids and copyright (c) 1999
@@ -179,7 +179,7 @@ void udp_callback(struct tuple4* addr, char* buf, int len, void* not_used)
                 (struct e2k_metalist_t*)&packet->file_info.meta_tag_list,
 		&filename,
 		&filesize);
-	fprintf( stdout, "udp_port[%u] hash[", addr->saddr);
+	fprintf( stdout, "udp_port[%u] hash[", addr->source); /* udp port */
         fprintf_e2k_hash(stdout,&packet->file_info.file_hash);
         fprintf(stdout,"]\t");
 	if (filename != NULL && filesize != NULL){
