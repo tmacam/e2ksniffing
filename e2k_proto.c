@@ -1,7 +1,7 @@
 /**@file e2k_proto.c
  * @brief edonkey protocol handling funtions
  * @author Tiago Alves Macambira
- * @version $Id: e2k_proto.c,v 1.7 2004-08-18 20:58:00 tmacam Exp $
+ * @version $Id: e2k_proto.c,v 1.8 2004-08-20 21:37:26 tmacam Exp $
  * 
  * 
  * Based on sample code provided with libnids and copyright (c) 1999
@@ -17,6 +17,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <strings.h>
+#include <assert.h>
 
 #include "e2k_defs.h"
 #include "e2k_utils.h"
@@ -204,6 +205,8 @@ inline void e2k_proto_handle_generic_hash(struct e2k_packet_generic_hash_t* pack
 
 inline void e2k_proto_handle_sending_part(struct e2k_packet_sending_part_t* packet, conn_state_t* connection)
 {
+	int res;
+
 	fprintf(stdout,"SENDING PART hash[");
 	fprintf_e2k_hash(stdout, &packet->hash);
 	fprintf(stdout,"] offset[%u,%u]",
@@ -211,10 +214,11 @@ inline void e2k_proto_handle_sending_part(struct e2k_packet_sending_part_t* pack
 
 	/* Oportunistic caching of downloaded files support */
 	if(connection->download_writer != NULL){
-		writers_pool_writer_write(connection->download_writer,
+		res = writers_pool_writer_write(connection->download_writer,
 			packet->start_offset,
 			packet->end_offset,
 			&packet->data);
+		assert( res == WRITERS_POOL_OK );
 	}
 }
 
@@ -278,6 +282,8 @@ inline void e2k_proto_handle_emule_data_compressed(struct e2k_packet_emule_data_
 inline void e2k_proto_request_parts( struct e2k_packet_request_parts_t *packet,
 		conn_state_t* connection)
 {
+	int res;
+
 	fprintf(stdout,"REQUEST PARTS hash[");
 	fprintf_e2k_hash(stdout,&packet->hash);
 	fprintf(stdout,"] offset_1[%u,%u] offset_2[%u,%u] offset_3[%u,%u]",
@@ -292,12 +298,14 @@ inline void e2k_proto_request_parts( struct e2k_packet_request_parts_t *packet,
 	/* Oportunistic caching of downloaded files support */
 	if ( ! hashes_are_equal(&connection->download_hash,&packet->hash)){
 		if( connection->download_writer != NULL){
-			writers_pool_writer_release(w_pool,
+			res = writers_pool_writer_release(w_pool,
                                 hash2str(&connection->download_hash));
+			assert( res == WRITERS_POOL_OK );
 		}
 		copy_hash(&connection->download_hash, &packet->hash);
 		connection->download_writer = writers_pool_writer_get( w_pool,
 				hash2str(&connection->download_hash));
+		assert( connection->download_writer != NULL );
 	}
 }
 
