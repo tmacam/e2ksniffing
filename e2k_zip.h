@@ -1,7 +1,7 @@
 /**@file e2k_zip.h
  * @brief Structures and fuctions to handle emule compressed data packets
  * @author Tiago Alves Macambira
- * @version $Id: e2k_zip.h,v 1.2 2004-08-28 22:21:06 tmacam Exp $
+ * @version $Id: e2k_zip.h,v 1.3 2004-08-31 23:35:50 tmacam Exp $
  *
  * Some parts of this file are from aMule 1.2.6 DownloadClient.cpp , and
  * thus covered by it's own licence (GPL compat)
@@ -20,7 +20,7 @@
 
 #define E2K_ZIP_ERR -1
 #define E2K_ZIP_OK 0
-#define E2K_ZIP_FINISED 1
+#define E2K_ZIP_FINISHED 1
 
 /**@brief Keeps zlib state and edonkey-data related to a REQUEST PARTS packet
  * and to the  EMULE COMPRESSED DATA packets it received as answer.
@@ -82,6 +82,9 @@ int e2k_zip_destroy(e2k_zip_state_t* zip_state);
 
 /**@brief unzip a chunk of data
  *
+ * @notice This function overwrites the provided e2k_zip_state_t's
+ * unzipped_buf and unzipped_buf_len at each call.
+ *
  * @param zip_state Zip_state realted to a REQUEST PARTS and to the
  * 		group of EMULE COMPRESSED DATA that followed it
  * @param len_unziped returns the number of bytes unzipped in this call
@@ -89,6 +92,12 @@ int e2k_zip_destroy(e2k_zip_state_t* zip_state);
  * @param zipped_buf buffer with the data to be unzipped
  *
  * @param i_recursion MUST BE SET TO 0!
+ *
+ * @return E2K_ZIP_OK or E2K_ZIP_FINISHED if things went ok. The latter 
+ * 	   means that the stream is finished and you can destroy this
+ * 	   e2k_zip_state_t after you read its uncompressed data... If
+ * 	   the streams if found corrupted of if another error is found
+ * 	   E2K_ZIP_ERR is returned.
  *
  */
 int e2k_zip_unzip(e2k_zip_state_t* zip_state, dword* len_unzipped,

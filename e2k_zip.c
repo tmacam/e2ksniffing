@@ -2,7 +2,7 @@
  * @brief Structures and fuctions to handle emule compressed data packets -
  * 	  Implementation
  * @author Tiago Alves Macambira
- * @version $Id: e2k_zip.c,v 1.4 2004-08-31 23:16:18 tmacam Exp $
+ * @version $Id: e2k_zip.c,v 1.5 2004-08-31 23:35:50 tmacam Exp $
  *
  * Some parts of this file are from aMule 1.2.6 DownloadClient.cpp , and
  * thus covered by it's own licence (GPL compat)
@@ -25,7 +25,7 @@
  *  Private functions and declarations
  * ******************************************************************** */
 
-#define E2K_BLOCK_SIZE 184320
+#define E2K_ZIP_BLOCK_SIZE 184320
 
 static inline void duplicate_output_buffer( e2k_zip_state_t* zip_state,
 		dword* len_unzipped, dword zipped_buf_len, z_stream* zs )
@@ -93,7 +93,7 @@ int e2k_zip_init(e2k_zip_state_t* zip_state)
 	/* Set it up*/
 	zip_state->in_use = 1;
 	/* zip_state->start  -=- Should NOT BE set here, but by the callee */
-	zip_state->unzipped_buf_len = E2K_BLOCK_SIZE + 300;
+	zip_state->unzipped_buf_len = E2K_ZIP_BLOCK_SIZE + 300;
 	zip_state->unzipped_buf = malloc(zip_state->unzipped_buf_len); 
 	if(zip_state->unzipped_buf == NULL){
 		e2k_zip_destroy(zip_state);
@@ -160,10 +160,8 @@ int e2k_zip_unzip(e2k_zip_state_t* zip_state, dword* len_unzipped,
 		 */
 		(*len_unzipped) = amount_unzipped_here;
 		zip_state->total_unzipped = zs->total_out;
-		/* FIXME: remove loggin
-		 * fprintf(stdout," -=- Z_STREAM_END -=- ");
-		 */
-		return E2K_ZIP_FINISED;
+
+		return E2K_ZIP_FINISHED;
 	}else if ((err == Z_OK) && (zs->avail_out == 0) && (zs->avail_in != 0)){
 		/* Output array was not big enough, call recursively until
 		 * there is enough space
@@ -171,7 +169,7 @@ int e2k_zip_unzip(e2k_zip_state_t* zip_state, dword* len_unzipped,
 		duplicate_output_buffer( zip_state, len_unzipped,
 				zipped_buf_len, zs );
 		/*FIXME: remove loggin */
-		fprintf(stderr," e2k_zip_unzip: output enlarged to %lu\n",
+		fprintf(stderr,"e2k_zip_unzip: output enlarged to %lu\n",
 				(*len_unzipped) );
 		/* ... and try again */
 		err = e2k_zip_unzip(zip_state, len_unzipped,
@@ -180,7 +178,8 @@ int e2k_zip_unzip(e2k_zip_state_t* zip_state, dword* len_unzipped,
 		if (err == E2K_ZIP_ERR){
 			(*len_unzipped) = 0;
 		}
-		return err;
+
+		return err; /* Converted to E2K_ZIP_XXX above */
 	} else if ((err == Z_OK) && (zs->avail_in == 0)) {
 		/* All available input has been processed, everything ok.
 		 * Set the size to the amount unzipped in this call
@@ -188,36 +187,15 @@ int e2k_zip_unzip(e2k_zip_state_t* zip_state, dword* len_unzipped,
 		 */
 		(*len_unzipped) = amount_unzipped_here;
 		zip_state->total_unzipped = zs->total_out;
-		return err;
+
+		return E2K_ZIP_OK;
 	} else if (err == Z_BUF_ERROR) {
 		return E2K_ZIP_OK;
 	} else {
 		/* Should not get here unless input data is corrupt */
-		/* FIXME: add verbose error outputing */
 		(*len_unzipped) = 0;
-		//assert(1 == 0); /* We should never get here! */
 		return E2K_ZIP_ERR;
 	}
-
-	/* FIXME remove code bellow */
-/*        if (err == Z_STREAM_END) {*/
-/*                |+ Got a good result, set the size to the amount unzipped*/
-/*                 * in this call  (including all recursive calls)*/
-/*                 +|*/
-/*                assert(zs->total_out > zip_state->total_unzipped);*/
-/*                (*len_unzipped) = amount_unzipped_here;*/
-/*                zip_state->total_unzipped = zs->total_out;*/
-/*                fprintf(stdout," !!! Z_STREAM_END !!! ");*/
-
-/*                return E2K_ZIP_OK;*/
-/*        }else if ( err == Z_BUF_ERROR){*/
-/*                zip_state->total_unzipped = zs->total_out;*/
-/*                fprintf(stdout," !!! Z_BUF_ERROR !!! ");*/
-/*                return E2K_ZIP_OK;*/
-/*        }else {*/
-/*                assert(1==0);*/
-/*                return E2K_ZIP_ERR;*/
-/*        }*/
 
 	assert(1 == 0); /* We should never get here! */
 }
