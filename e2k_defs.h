@@ -1,7 +1,7 @@
 /**@file e2k_defs.h
  * @brief Common edonkey definitions
  * @author Tiago Alves Macambira
- * @version $Id: e2k_defs.h,v 1.9 2004-03-03 07:57:30 tmacam Exp $
+ * @version $Id: e2k_defs.h,v 1.10 2004-03-03 08:08:51 tmacam Exp $
  * 
  */
 
@@ -12,6 +12,7 @@
 #define EDONKEY_PROTO_EMULE  0xc5
 
 #define EDONKEY_MSG_HELLO 0x01
+#define EDONKEY_MSG_HELLO_ANSWER 0x4c
 #define EDONKEY_MSG_FILE_REQUEST 0x58
 #define EDONKEY_MSG_REQUEST_PARTS 0x47
 #define EDONKEY_MSG_SENDING_PART 0x46

@@ -1,6 +1,6 @@
 /* 
  * @author Tiago Alves Macambira
- * @version $Id: main.c,v 1.14 2004-03-03 07:57:30 tmacam Exp $
+ * @version $Id: main.c,v 1.15 2004-03-03 08:08:51 tmacam Exp $
  * 
  * 
  * Based on sample code provided with libnids and copyright (c) 1999
@@ -305,7 +305,8 @@ int handle_state_wait_full_header(int is_server,
 			return HANDLE_STATE_SUCCESSFUL;
 		} else {
 			/* Unblessed. Does it seem like a edonkey conn.? */
-			if ( (hdr->msg == EDONKEY_MSG_HELLO) && 
+			if ( ( (hdr->msg == EDONKEY_MSG_HELLO) ||
+			       (hdr->msg == EDONKEY_MSG_HELLO_ANSWER) ) && 
 			     ( (hdr->proto == EDONKEY_PROTO_EDONKEY) ||
 			       (hdr->proto == EDONKEY_PROTO_EMULE) ) )
 			{
