@@ -1,7 +1,7 @@
 /**@file e2k_proto.c
  * @brief edonkey protocol handling funtions
  * @author Tiago Alves Macambira
- * @version $Id: e2k_proto.c,v 1.4 2004-03-21 02:29:07 tmacam Exp $
+ * @version $Id: e2k_proto.c,v 1.5 2004-03-22 02:12:43 tmacam Exp $
  * 
  * 
  * Based on sample code provided with libnids and copyright (c) 1999
@@ -141,7 +141,7 @@ int e2k_proto_handle_metalist(struct e2k_metalist_t* metalist)
 				break;
 			case EDONKEY_MTAG_DWORD:
 				read_dword = (dword*)&data[offset];
-				fprintf(stdout,"%i",*read_dword);
+				fprintf(stdout,"%u",*read_dword);
 				offset += sizeof(dword);
 				break;
 			case EDONKEY_MTAG_FLOAT:
@@ -185,7 +185,7 @@ inline void e2k_proto_handle_sending_part(struct e2k_packet_sending_part_t* pack
 {
 	fprintf(stdout,"SENDING PART hash[");
 	fprintf_e2k_hash(stdout, &packet->hash);
-	fprintf(stdout,"] offset[%i,%i]",
+	fprintf(stdout,"] offset[%u,%u]",
 		packet->start_offset, packet->end_offset);
 }
 
@@ -230,7 +230,7 @@ inline void e2k_proto_handle_generic_client_hello(struct e2k_packet_hello_client
 
 inline void e2k_proto_handle_generic_emule_hello(struct e2k_packet_emule_hello_t* packet, unsigned char* msg_name)
 {
-	fprintf(stdout,"%s version[%i] ", msg_name, packet->version);
+	fprintf(stdout,"%s version[%u] ", msg_name, packet->version);
 	e2k_proto_handle_metalist(&packet->meta_tag_list);
 }
 			
@@ -238,7 +238,7 @@ inline void e2k_proto_handle_emule_data_compressed(struct e2k_packet_emule_data_
 {
 	fprintf(stdout,"EMULE COMPRESSED DATA hash[");
 	fprintf_e2k_hash(stdout, &packet->hash);
-	fprintf(stdout,"] offset[%i,%i]",
+	fprintf(stdout,"] offset[%u,%u]",
 		packet->start_offset,packet->packed_len);
 }
 
@@ -246,7 +246,7 @@ inline void e2k_proto_request_parts( struct e2k_packet_request_parts_t *packet)
 {
 	fprintf(stdout,"REQUEST PARTS hash[");
 	fprintf_e2k_hash(stdout,&packet->hash);
-	fprintf(stdout,"] offset_1[%i,%i] offset_2[%i,%i] offset_3[%i,%i]",
+	fprintf(stdout,"] offset_1[%u,%u] offset_2[%u,%u] offset_3[%u,%u]",
 		packet->start_offset_1,
 		packet->end_offset_1,
 		packet->start_offset_2,
@@ -260,19 +260,19 @@ inline void e2k_proto_handle_file_status(struct e2k_packet_file_status_t *packet
 {
 	fprintf( stdout,"FILE STATUS hash[");
 	fprintf_e2k_hash(stdout,&packet->hash);
-	fprintf( stdout,"] len[%i] bitmap=0x[", packet->len);
+	fprintf( stdout,"] len[%u] bitmap=0x[", packet->len);
 	fprintf_e2k_hex(stdout, &packet->bitmap,(packet->len+7)/8);
 	fprintf(stdout,"]");
 }
 
 inline void e2k_proto_handle_queue_rank(struct e2k_packet_queue_rank_t *packet)
 {
-	fprintf( stdout, "QUEUE RANK rank[%i]", packet->rank);
+	fprintf( stdout, "QUEUE RANK rank[%u]", packet->rank);
 }
 
 inline void e2k_proto_handle_emule_queue_ranking (struct e2k_packet_emule_queue_ranking_t *packet)
 {
-	fprintf( stdout, "QUEUE RANKING rank[%i]", packet->rank);
+	fprintf( stdout, "QUEUE RANKING rank[%u]", packet->rank);
 }
 
 /* ********************************************************************  
@@ -289,7 +289,7 @@ void handle_edonkey_packet(int is_server, char *pkt_data, char *address_str)
 	/* Print basic log line */
 	direction = is_server ? "[S]" : "[C]";
 	fprintf( stdout,
-		 "%s %s%s proto=0x%02x msg_id=0x%02x size=%i ", strtimestamp(),
+		 "%s %s%s proto=0x%02x msg_id=0x%02x size=%u ", strtimestamp(),
 		 address_str, direction, hdr->proto, hdr->msg,hdr->packet_size);
 
 	/* Print extra information for some message types */
