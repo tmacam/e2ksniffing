@@ -1,7 +1,7 @@
 /**@file main.c
  * @brief main - Program, libs, and logging facilities setup and handling
  * @author Tiago Alves Macambira
- * @version $Id: main.c,v 1.17 2004-03-11 20:13:50 tmacam Exp $
+ * @version $Id: main.c,v 1.18 2004-03-18 14:52:42 tmacam Exp $
  * 
  * 
  * Based on sample code provided with libnids and copyright (c) 1999
@@ -278,9 +278,10 @@ void syslog_drops(void)
 	       }
 		pcap_stats( pcap_descriptor , &stat);
 		syslog( nids_params.syslog_level,
-			" == Statistics: Droped Packets: %i, Active Connections: %i",
+			" == Statistics: Droped Packets: %i, Active Connections: %i, Received Packtes: %i",
 			stat.ps_drop,
-			n_connections);
+			n_connections,
+			stat.ps_recv);
 	}
 }
 
@@ -305,8 +306,8 @@ int main(int argc, char* argv[])
 	nids_params.scan_num_hosts = 0; /* Turn port-scan detection off */
 	nids_params.no_mem = out_of_memory_callback;
 	nids_params.n_hosts=1024*16; /* FIXME value too small? */
-	nids_params.n_tcp_streams = 1024*256;
-	nids_params.sk_buff_size = 1024*32;
+	nids_params.n_tcp_streams = 1024*128;
+	nids_params.sk_buff_size = 1024*64;
 
 	/* Load recorded trace-file or sniff the network?*/
 	if (argc > 1){
@@ -340,6 +341,7 @@ int main(int argc, char* argv[])
 	nids_register_tcp(tcp_callback);
 	
 	printf(" == Sniffing started.\n");
+	syslog( nids_params.syslog_level," == Sniffing started.");
 	nids_run(); /* Loop forever*/
 	return 0;
 }
