@@ -1,17 +1,15 @@
 /* 
  * @author Tiago Alves Macambira
- * @version $Id: e2k_defs.h,v 1.2 2004-01-15 03:05:20 tmacam Exp $
+ * @version $Id: e2k_defs.h,v 1.3 2004-01-21 06:27:36 tmacam Exp $
  * 
  * 
  * 
  */
 
 
-/* #define BEEN_HERE do {printf("BEEN HERE: %03i\n",__LINE__);} while(0) */
-#define BEEN_HERE do {} while(0)
-
 #define EDONKEY_CLIENT_PORT 4662
 #define EDONKEY_FILE_REQUEST_OPCODE 0x58
+#define EDONKEY_REQUEST_PARTS_OPCODE 0x47
 
 /** The size of <uchar proto><dword pkt_len><uchar msg_type>*/
 #define EDONKEY_HEADER_SIZE 6

@@ -1,6 +1,6 @@
 /* 
  * @author Tiago Alves Macambira
- * @version $Id: main.c,v 1.4 2004-01-21 04:41:00 tmacam Exp $
+ * @version $Id: main.c,v 1.5 2004-01-21 06:27:36 tmacam Exp $
  * 
  * 
  * Based on sample code provided with libnids and copyright (c) 1999
@@ -42,7 +42,7 @@ const char *address_str(struct tuple4 addr)
 	static char buf[256];
 	strncpy(buf, inet_ntoa(*((struct in_addr *)&(addr.saddr))), 256);
 	snprintf(buf + strlen(buf), 256, ":%i, ", addr.source);
-	strncpy(buf, inet_ntoa(*((struct in_addr *)&(addr.daddr))),256);
+	strncpy(buf + strlen(buf), inet_ntoa(*((struct in_addr *)&(addr.daddr))),256);
 	snprintf(buf + strlen(buf), 256, ":%i", addr.dest);
 	return buf;
 }
@@ -57,16 +57,17 @@ const char *address_str(struct tuple4 addr)
  * where the printed hash came from, from which "function", hence "func_name".
  * The contents of this string will be printed on the begining of the line
  *
- * @param a_tcp the "stream" whose address will be printed along "func_name"
+ * @param addr_tuple the client and server addresses that will be printed
+ * along "func_name"
  *
  * @param e2k_hash the MD4 hash
  */
-void print_hash(char* func_name,struct tcp_stream *a_tcp,struct e2k_hash_t* hash )
+void print_hash(char* func_name,struct tuple4* addr_tuple,struct e2k_hash_t* hash )
 {
 	byte* hash_data = hash->data; /* Saving 16 ptrs. indirections*/
         printf("%s (%s) \tHash: '%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x'\n",
 		func_name, 
-		address_str(a_tcp->addr),
+		address_str(*addr_tuple),
 		hash_data[0], hash_data[1], hash_data[2], hash_data[3], 
 		hash_data[4], hash_data[5], hash_data[6], hash_data[7],
 		hash_data[8], hash_data[9], hash_data[10],hash_data[11],
@@ -86,19 +87,25 @@ void print_hash(char* func_name,struct tcp_stream *a_tcp,struct e2k_hash_t* hash
  * @param addr_tuple pointer to a structure with  addres/port of the
  * two endpoints of the connection from where the packet was sniffed.
  */
-void handle_edonkey_packet(char *pkt_data/*, struct tuple4* addr_tuple*/)
+void handle_edonkey_packet(char *pkt_data, struct tuple4* addr_tuple)
 {
 	struct e2k_header_t *hdr= NULL;
+	struct e2k_packet_file_request_t *file_req = NULL;
 	
 	(void*)hdr = (void*)pkt_data;
+	(void *)file_req = (void *)pkt_data;
 	
-	/*if ( hdr->msg == EDONKEY_FILE_REQUEST_OPCODE){
-		struct e2k_packet_file_request_t *file_req;
-		(void *)file_req = (void *)hdr;
-		print_hash("File request from",a_tcp, &(file_req->hash));
-	}*/
-	printf ("E2K package > proto=0x%02x packet_size=%i msg_id=0x%02x\n",
-			hdr->proto, hdr->packet_size, hdr->msg);
+	if ( hdr->msg == EDONKEY_FILE_REQUEST_OPCODE){
+		print_hash("File request from",addr_tuple, &(file_req->hash));
+	} else if ( hdr->msg == EDONKEY_REQUEST_PARTS_OPCODE ){
+		print_hash("Request parts from",addr_tuple, &(file_req->hash));
+	}
+#ifdef BE_VERBOSE
+	fprintf( stdout,
+		 "E2K pkt> %s proto=0x%02x packet_size=%i msg_id=0x%02x\n",
+		 address_str(*addr_tuple), hdr->proto,
+		 hdr->packet_size, hdr->msg);
+#endif
 	
 }
 
@@ -112,8 +119,10 @@ void handle_edonkey_packet(char *pkt_data/*, struct tuple4* addr_tuple*/)
 /**@brief Given the current position in the stream and the length of
  * the current edonkey packet, returns the position (offset) of the next packet.
  *
- * @param current_offset our current position in the stream
+ * @param current_offset our current position ( offset ) in the stream
  * @param current_packet_len the length of the packet
+ *
+ * @return the offset of the next packet
  */
 inline int get_next_packet_offset(int current_offset, int current_packet_len)
 {
@@ -122,17 +131,25 @@ inline int get_next_packet_offset(int current_offset, int current_packet_len)
 	 * twice, since packet_size includes the
 	 * msg. header byte
 	 * 
-	 * +1 => but we want to reach the NEXT packet
-	 * border... NEVERMIND, it starts counting on 0
-	 *
 	 * Let's just keep it for legibility sake's
 	 *  - i won't remember it later anyway...
 	 */
 }
 
-/**@brief
+/**@brief State Machine - initial state
  *
- * Packet position is expected in conn_state->next_packet_offset
+ * This state will wait until we have enough data in the stream to read
+ * a full donkey packet header ( aprox. 6 bytes, see EDONKEY_HEADER_SIZE ).
+ * When it happens, it will pass the state machine to the next state - the
+ * one that waits for a full packet.
+ * 
+ * Packet position is expected in conn_state->next_packet_offset, i.e, counting
+ * from the start of the strem, the next packet will be offseted 
+ * next_packet_offset bytes. If this offset was not reached yet,
+ * we will keep waiting for more data.
+ *
+ * @warning next_packet_offset here means "the offset of the NEXT NOT FULLY
+ * PROCESSED packet" in the stream.
  *
  * @return 0 (zero) if the it successfuly completed it's intented function
  * with the available data; non-zero otherwise
@@ -152,21 +169,39 @@ int handle_state_wait_full_header(struct tcp_stream *a_tcp, conn_state_t *conn_s
 		 * return w/ failure */
 		return HANDLE_STATE_NEED_MORE_DATA;
 	} else {
+#ifdef BE_VERBOSE
 		/* Read header data */
 		(void*)hdr = (void*)(client->data + offset_shift);
-		fprintf(stderr, "%s\t", address_str(a_tcp->addr));
-		printf ("Header > proto=0x%02x packet_size=%i msg_id=0x%02x\n",
-				hdr->proto, hdr->packet_size, hdr->msg);
+		/* Don't we perl lovers/haters adore verbose outputs? */
+		fprintf(stdout,"Header > %s proto=0x%02x packet_size=%i msg_id=0x%02x\n", address_str(a_tcp->addr), hdr->proto, hdr->packet_size, hdr->msg);
+#endif
 		/* Enough data - change state */
 		conn_state->state = wait_full_packet;
 		return HANDLE_STATE_SUCCESSFUL;
 	}
 }
 
-/**@brief
- *
+/**@brief  State Machine control - Waiting for a Full packet
+ * 
+ * So we have at least a complete donkey packet header available. With
+ * it we can calc the size of the donkey packet we are currently reading
+ * and thus we can manage to wait to gather enough bytes to assemble this
+ * sniffed packet.
+ * 
  * Packet position is expected in conn_state->next_packet_offset, i.e.,
- * as left from handle_state_wait_full_header
+ * as left from handle_state_wait_full_header, AND we expect that this 
+ * position in the stream is accessible. Failing to assert these two conditions
+ * may lead to unexpected behavior ( i.e., probably a crash / core dump ).
+ *
+ * If the packet is fully accessible in the stream, it will be passed for
+ * further processing @ handle_edonkey_packet(), the next_packet_offset will
+ * be updated to the offset of the next expected packet and the state machine
+ * will be set to the default wait_full_header state. Otherwise we will keep
+ * waiting for the full packet
+ *
+ * @warning this state SHOULD only be reache through wait_full_header
+ * @warning next_packet_offset here means "the offset of the NEXT NOT FULLY
+ * PROCESSED packet" in the stream.
  *
  * @return 0 (zero) if the it successfuly completed it's intented function
  * with the available data; non-zero otherwise
@@ -189,13 +224,10 @@ int handle_state_wait_full_packet(struct tcp_stream *a_tcp, conn_state_t *conn_s
 
 	following_packet_offset = get_next_packet_offset(conn_state->next_packet_offset, hdr->packet_size);
 
-	printf("### wait_full_packet ###\n");
-	printf("count:%i, next -1:%i\n",client->count,(following_packet_offset-1 ) );
-	
 	/* Have we got enough data? */
 	if ( client->count >= ( following_packet_offset - 1 ) ){
 		/* yes, we have */
-		handle_edonkey_packet(pkt_data);
+		handle_edonkey_packet(pkt_data, &a_tcp->addr);
 		/* Since we are done with this packet,
 		 * let's wait for the next packet header */
 		conn_state->state= wait_full_header;
@@ -210,7 +242,18 @@ int handle_state_wait_full_packet(struct tcp_stream *a_tcp, conn_state_t *conn_s
 
 
 
-/**@brief
+/**@brief State Machine - dumb state
+ *
+ * This state has no use currently. It should be used when we know we are not
+ * interested in the next packet available in the stream ( whose position is
+ * fiven by conn_state->next_packet_offset ) and we just want to skip it
+ * and skip the full donkey packet processing functions.
+ *
+ * This function can be seen as a dumb ( and fast ) version of wait_full_packet.
+ *
+ * @warning Differently from the other 2 states, this function uses
+ * next_packet_offset as the offset of the NEXT packet NOT SEEN yet in the
+ * stream, not the the offset of the next unprocessed packet.
  *
  * @return 0 (zero) if the it successfuly completed it's intented function
  * with the available data; non-zero otherwise
@@ -237,7 +280,22 @@ int handle_state_skip_full_packet(struct tcp_stream *a_tcp, conn_state_t *conn_s
 
 
 
-
+/**@brief Controls new data processing - state machine control loop
+ *
+ * Summing up: basic state machine control.
+ *
+ * We will "run through" all the availiable data in the buffer currently,
+ * extracting all the availiable packets from it, until there's nothing
+ * left to be processed or there's no enough data in the stream to fully
+ * process a complete packet.
+ *
+ * The "extraction" is controled by a very simple state machine ( only
+ * 2 states used ). State information is stored in conn_state and is controled
+ * by the handle_state_* functions.
+ *
+ *
+ * @see conn_state_t
+ */
 void handle_tcp_data(struct tcp_stream *a_tcp, conn_state_t *conn_state)
 {	
 	struct half_stream *client = &a_tcp->client;

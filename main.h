@@ -1,10 +1,13 @@
 /* 
  * @author Tiago Alves Macambira
- * @version $Id: main.h,v 1.1 2004-01-15 02:26:24 tmacam Exp $
+ * @version $Id: main.h,v 1.2 2004-01-21 06:27:36 tmacam Exp $
  * 
  * 
  * 
  */
+
+
+#define BE_VERBOSE
 
 
 /* #define BEEN_HERE do {printf("BEEN HERE: %03i\n",__LINE__);} while(0) */
