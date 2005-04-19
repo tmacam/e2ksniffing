@@ -213,9 +213,17 @@ struct e2k_hash_t* kad_key_to_hash(struct e2k_hash_t* kad_key){
 	return &hash;
 }
 
+/**@print a kad_uint128_t entry
+ *
+ * Kad identifiers are not plain 128 hashes. They are a 128bits integer stored
+ * as 4 uint32 little-endian integers, stored from the most to the least significant
+ * uint32. Because of this a special print function is needed.
+ * */
 void fprintf_kad_key(FILE* stream,struct e2k_hash_t* key)
 {
-	fprintf_e2k_hash(stream,kad_key_to_hash(key));
+	dword* uints = (dword*) key;
+	fprintf(stream,"%08x%08x%08x%08x", uints[0],uints[1],uints[2],uints[3]);
+	/*fprintf_e2k_hash(stream,kad_key_to_hash(key));*/
 }
 
 void fprintf_kad_udp_peer(FILE* stream, struct kad_udp_peer_t* peer)
