@@ -2,7 +2,7 @@
  * @brief main - Program, libs, and logging facilities setup and handling for
  *        UDP query messages
  * @author Tiago Alves Macambira
- * @version $Id
+ * @version $Id: udp_kad_main.c,v 1.5 2005-06-13 21:01:43 tmacam Exp $
  * 
  * This code is based on udp_main.c,v 1.3 2004/04/01 22:49:28 
  * 
@@ -213,7 +213,7 @@ struct e2k_hash_t* kad_key_to_hash(struct e2k_hash_t* kad_key){
 	return &hash;
 }
 
-/**@print a kad_uint128_t entry
+/**@brief print a kad_uint128_t entry
  *
  * Kad identifiers are not plain 128 hashes. They are a 128bits integer stored
  * as 4 uint32 little-endian integers, stored from the most to the least significant
@@ -225,6 +225,17 @@ void fprintf_kad_key(FILE* stream,struct e2k_hash_t* key)
 	fprintf(stream,"%08x%08x%08x%08x", uints[0],uints[1],uints[2],uints[3]);
 	/*fprintf_e2k_hash(stream,kad_key_to_hash(key));*/
 }
+
+/**@brief xors 2 kad keys 'a' and 'b'  and puts the result in 'res'
+ */
+void kad_uint128_xor (kad_uint128_t* res, kad_uint128_t* a, kad_uint128_t* b)
+{
+	res->uints[0] = a->uints[0] ^ b->uints[0];
+	res->uints[1] = a->uints[1] ^ b->uints[1];
+	res->uints[2] = a->uints[2] ^ b->uints[2];
+	res->uints[3] = a->uints[3] ^ b->uints[3];
+}
+
 
 void fprintf_kad_udp_peer(FILE* stream, struct kad_udp_peer_t* peer)
 {
@@ -346,6 +357,15 @@ void kad_proto_handle_request(struct kad_udp_packet_request_t* packet)
 	fprintf_kad_key(stdout,&packet->target);
 	fprintf(stdout," receiver: ");
 	fprintf_kad_key(stdout,&packet->receiver);
+
+	/*Print progress*/
+	kad_uint128_t distance;
+	kad_uint128_xor(&distance,
+			(kad_uint128_t*)&packet->target,
+			(kad_uint128_t*)&packet->receiver);
+	fprintf(stdout, " distance: ");
+	fprintf_kad_key(stdout, (struct e2k_hash_t*)&distance);
+	
 }
 
 void kad_proto_handle_response(struct kad_udp_packet_response_t* packet)

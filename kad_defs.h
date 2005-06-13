@@ -1,7 +1,7 @@
 /**@file kad_defs.h
  * @brief Common kad definitions
  * @author Tiago Alves Macambira
- * @version $Id: kad_defs.h,v 1.3 2004-12-10 19:53:28 tmacam Exp $
+ * @version $Id: kad_defs.h,v 1.4 2005-06-13 21:01:43 tmacam Exp $
  *
  * Some parts of this file are from ethereal's packet-edonkey.{c,h}, and
  * thus covered by it's own licence (GPL compat)
@@ -61,6 +61,17 @@
 /* ********************************************************************  
  * Protocol structures and typedefs 
  * ******************************************************************** */
+
+/**@brief a kad_uint128_t entry (key, or identifier)
+ *
+ * Kad identifiers are not plain 128 hashes. They are a 128bits integers
+ * stored as 4 uint32 little-endian integers, stored from the most
+ * to the least significant uint32.
+ */
+struct kad_uint128_s{
+	dword uints[4];
+}__attribute__((packed));
+typedef struct kad_uint128_s kad_uint128_t;
 
 struct kad_udp_taglist_t{
         byte length;
