@@ -1,7 +1,7 @@
 /**@file main.c
  * @brief main - Program, libs, and logging facilities setup and handling
  * @author Tiago Alves Macambira
- * @version $Id: main.c,v 1.31 2004-08-30 21:24:17 tmacam Exp $
+ * @version $Id: main.c,v 1.32 2005-06-13 20:56:10 tmacam Exp $
  * 
  * 
  * Based on sample code provided with libnids and copyright (c) 1999
@@ -34,6 +34,7 @@
 #include <time.h>
 #include <strings.h>
 #include <stdlib.h>
+#include <signal.h>
 
 #include <assert.h>
 
@@ -41,7 +42,6 @@
 #include "e2k_utils.h"
 #include "e2k_state_machine.h"
 
-#include "writers_pool.h"
 
 /* ********************************************************************  
  *  Global defines - error handling macros 
@@ -54,11 +54,17 @@
  *  Global variables - Private to this module
  * ******************************************************************** */
 
+/* # of seen connections */
+unsigned long int n_a_connections = 0;		/* accounts ALL seen conns. */
+unsigned long int n_a_closed = 0;		/* accounts ALL seen conns. */	
+unsigned long int n_a_reset = 0;		/* accounts ALL seen conns. */
+unsigned long int n_a_timedout = 0;		/* accounts ALL seen conns. */
+
 unsigned char e2ksniff_errbuf[256];
 
 pcap_t* pcap_descriptor = NULL;
-unsigned long int n_active_connections;
-dword n_seen_connections;
+unsigned long int n_active_connections;		/* accounts only e2k conns. */
+dword n_seen_connections;			/* accounts only e2k conns. */
 time_t next_syslog_report_time = 0;
 int is_sniffing = 0;
 writers_pool_t w_pool = NULL;
@@ -212,21 +218,36 @@ inline void handle_tcp_establish(struct tcp_stream *a_tcp, conn_state_t **conn_s
 
 void tcp_callback(struct tcp_stream *a_tcp, conn_state_t **conn_state_ptr)
 {
+	/* Generic statistics are handled here. edonkey-specific statistics
+	 * are handled inside the handle_<state> functions
+	 */
 	
-	if (a_tcp->nids_state == NIDS_DATA) {
+	switch(a_tcp->nids_state){
+	case NIDS_DATA:
 		/* new data has arrived in the stream */
 		handle_tcp_data(a_tcp, conn_state_ptr);
-	} else	if (a_tcp->nids_state == NIDS_JUST_EST) {
+		break;
+	case NIDS_JUST_EST:
 		/* A new connection was established.
 		 * Is it a edonkey connection? Should we sniff it?
 		 */
+		n_a_connections++;
 		if (a_tcp->addr.dest == EDONKEY_CLIENT_PORT) {
 			handle_tcp_establish(a_tcp,conn_state_ptr);
 		}
-	} else if ( (a_tcp->nids_state == NIDS_CLOSE) ||
-	     (a_tcp->nids_state == NIDS_RESET) ||
-	     (a_tcp->nids_state == NIDS_TIMED_OUT) ){
+		break;
+	case NIDS_CLOSE:
+		n_a_closed++;
 		handle_tcp_close(a_tcp,conn_state_ptr);
+		break;
+	case NIDS_RESET:
+		n_a_reset++;
+		handle_tcp_close(a_tcp,conn_state_ptr);
+		break;
+	case NIDS_TIMED_OUT:
+		n_a_timedout++;
+		handle_tcp_close(a_tcp,conn_state_ptr);
+		break;
 	};
 	return;
 }
@@ -322,9 +343,9 @@ void syslog_drops(void)
 
 	if (is_sniffing) {
 	       if (pcap_descriptor == NULL) {
-		       pcap_descriptor = nids_getdesc();
+		       //pcap_descriptor = nids_getdesc();
 	       }
-		pcap_stats( pcap_descriptor , &stat);
+		//pcap_stats( pcap_descriptor , &stat);
 		syslog( nids_params.syslog_level,
 			" == Statistics: Droped Packets: %i, Active Connections: %lu, Received Packtes: %i",
 			stat.ps_drop,
@@ -430,16 +451,50 @@ int rotate_logfile( int interval, int max_size )
 	return 0;
 }
 
+void log_statistics(void)
+{
+	struct pcap_stat stat;
+
+	if (pcap_descriptor == NULL){
+		//pcap_descriptor = nids_getdesc();
+	}
+	//pcap_stats( pcap_descriptor , &stat);
+	/* Eu não confio mais em nada! E chega de comentários
+	 * em inglês!*/
+	fprintf( stderr,
+		 " == Statistics: Packets Droped %i Received %i\n == Statistics: Connections seen: %lu Closed: %lu Reset: %lu  Timed-Out: %lu\n == Statistics: edonkey Connections: seen: %lu active: %lu\n",
+		 stat.ps_drop,		/* network statistics (unreliable) */
+		 stat.ps_recv,
+		 n_a_connections,	/* ALL seen connections */
+		 n_a_closed,
+		 n_a_reset,
+		 n_a_timedout,
+		 n_seen_connections,	/* just edonkey conns */
+		 n_active_connections
+		);
+	exit(0);
+}
+
+void sigint_handler(int signum)
+{
+	fprintf(stderr,"Caught 'interrupt' signal...\n");
+	log_statistics();
+}
+
+
+
 /* ********************************************************************  
  * Main program
  * ******************************************************************** */
 
 int main(int argc, char* argv[])
 {
-	
+	/* signal handler setup */
+	signal(SIGINT,sigint_handler);
+
 	/* Initial local setup - counters, syslog, etc */
-	n_active_connections = 0;
-	n_seen_connections = 0;
+	n_active_connections = n_seen_connections = 0;
+	n_a_connections = n_a_closed = n_a_reset = n_a_timedout  = 0;
 	is_sniffing = 0;
 	next_syslog_report_time = time(NULL);
 	pcap_descriptor = NULL; /* setted @ syslog_drops() */
@@ -504,7 +559,8 @@ int main(int argc, char* argv[])
 		if( rotate_logfile(LOGROTATE_INTERVAL,LOGROTATE_MAX_SIZE) < 0){
 			syslog( nids_params.syslog_level,
 				" == ERROR: Could not logrotate");
-			fprintf( stderr, " == ERROR: Could not logrotate\n");
+			fprintf( stderr, " == ERROR: Could not logrotate: %s\n",
+					e2ksniff_errbuf);
 			exit(1);
 		}
 	} else {
@@ -530,5 +586,9 @@ int main(int argc, char* argv[])
 		fprintf(stderr, " == ERROR destroying WritersPool");
 	}
 
+	log_statistics();
+
 	return 0;
 }
+
+
