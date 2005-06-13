@@ -1,15 +1,30 @@
 #
 # Author: Tiago Alves Macambira
-# Version: $Id: Makefile,v 1.13 2004-12-06 16:46:46 tmacam Exp $
+# Version: $Id: Makefile,v 1.14 2005-06-13 20:52:37 tmacam Exp $
 #
 # See COPYING for license details
 
 
 FRAGMENTED_WRITER_DIR = ./FragmentSaver/
 
-LIBS = -lnids -lpcap -lstdc++ -lz
+# E2KSNIFFER_JUST_LOG e P4P_SIGNATURE_SHORT_CIRCUIT
+#SNIFF_LEVEL= -DP4P_SIGNATURE_SHORT_CIRCUIT=8388608l
+#SNIFF_LEVEL= -DE2KSNIFFER_JUST_LOG
+SNIFF_LEVEL=
+export SNIFF_LEVEL
+
+#OPTIMIZE= -ggdb -g3 -D_GLIBCXX_CONCEPT_CHECKS
+#OPTIMIZE= -O3 -march=pentium4 -Winline
+#OPTIMIZE= -O3 -march=athlon -Winline 
+OPTIMIZE=  -O3
+export OPTIMIZE
+
+LIBS = -lnids -lstdc++ -lz
 INCLUDE_DIR = -IFragmentSaver/
-CFLAGS= -ggdb $(INCLUDE_DIR) -DP4P_SIGNATURE_SHORT_CIRCUIT=8388608l
+CFLAGS= $(INCLUDE_DIR) $(OPTIMIZE) $(SNIFF_LEVEL)
+#CFLAGS= -ggdb $(INCLUDE_DIR) -DP4P_SIGNATURE_SHORT_CIRCUIT=8388608l
+#CFLAGS= -O3 -march=pentium4 -Winline $(INCLUDE_DIR) -DE2KSNIFFER_JUST_LOG
+#CFLAGS= -ggdb $(INCLUDE_DIR) -DE2KSNIFFER_JUST_LOG
 #CC=gcc -O3 -march=athlon -Winline 
 CC=gcc $(CFLAGS)
 
@@ -30,7 +45,7 @@ e2k_proto.o: e2k_proto.c e2k_proto.h e2k_defs.h e2k_utils.h
 e2k_state_machine.o: e2k_state_machine.c main.h e2k_defs.h e2k_proto.h
 
 writers_pool_bundle.o:
-	(cd $(FRAGMENTED_WRITER_DIR) && make writers_pool_bundle.o) && cp -fv $(FRAGMENTED_WRITER_DIR)/writers_pool_bundle.o .
+	(cd $(FRAGMENTED_WRITER_DIR) && $(MAKE) writers_pool_bundle.o) && cp -fv $(FRAGMENTED_WRITER_DIR)/writers_pool_bundle.o .
 
 teste: teste.c e2k_defs.h main.h
 	$(CC) -ggdb $(LIBS) teste.c -o teste
@@ -45,3 +60,5 @@ udp_kad_main: udp_kad_main.c e2k_defs.h main.h e2k_utils.o
 
 clean:
 	-rm -rf *.o main udp_main
+	cd $(FRAGMENTED_WRITER_DIR) && $(MAKE) clean
+	
