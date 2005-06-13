@@ -1,7 +1,7 @@
 /**@file main.h
  * @brief main - Program, libs, and logging facilities setup and handling
  * @author Tiago Alves Macambira
- * @version $Id: main.h,v 1.13 2004-09-01 20:41:38 tmacam Exp $
+ * @version $Id: main.h,v 1.14 2005-06-13 20:58:01 tmacam Exp $
  * 
  * Based on sample code provided with libnids and copyright (c) 1999
  * Rafal Wojtczuk <nergal@avet.com.pl>. All rights reserved.
@@ -15,6 +15,10 @@
 
 #ifndef _MAIN__H_
 #define _MAIN__H_
+
+#ifdef E2KSNIFFER_JUST_LOG
+#undef P4P_SIGNATURE_SHORT_CIRCUIT
+#endif
 
 #include "e2k_defs.h"
 #include "writers_pool.h"

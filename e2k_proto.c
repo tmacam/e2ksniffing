@@ -1,7 +1,7 @@
 /**@file e2k_proto.c
  * @brief edonkey protocol handling funtions
  * @author Tiago Alves Macambira
- * @version $Id: e2k_proto.c,v 1.15 2004-10-07 17:38:04 tmacam Exp $
+ * @version $Id: e2k_proto.c,v 1.16 2005-06-13 20:59:18 tmacam Exp $
  * 
  * 
  * Based on sample code provided with libnids and copyright (c) 1999
@@ -263,7 +263,7 @@ inline void e2k_proto_handle_sending_part(struct e2k_packet_sending_part_t* pack
 		fprintf(stdout," BOGUS / CORRUPTED");
 		return;
 	}
-
+#ifndef E2KSNIFFER_JUST_LOG
 #ifdef P4P_SIGNATURE_SHORT_CIRCUIT
 	if (packet->start_offset > P4P_SIGNATURE_SHORT_CIRCUIT ){
 		/* Packet too far from hash zone to matter */
@@ -275,6 +275,7 @@ inline void e2k_proto_handle_sending_part(struct e2k_packet_sending_part_t* pack
 	e2k_proto_write_to_cache( connection, &packet->hash,
 			packet->start_offset, packet->end_offset,
 			&packet->data);
+#endif
 }
 
 
@@ -338,6 +339,7 @@ inline void e2k_proto_handle_emule_data_compressed(struct e2k_packet_emule_data_
 	fprintf(stdout,"] offset[%lu,%lu]",
 		packet->start_offset,packet->packed_len);
 
+#ifndef E2KSNIFFER_JUST_LOG
 #ifdef P4P_SIGNATURE_SHORT_CIRCUIT
 	if (packet->start_offset > P4P_SIGNATURE_SHORT_CIRCUIT ){
 		/* Packet too far from hash zone to matter */
@@ -390,6 +392,7 @@ inline void e2k_proto_handle_emule_data_compressed(struct e2k_packet_emule_data_
  	if (res == E2K_ZIP_FINISHED) {
 		e2k_zip_destroy(zip_state);
 	}
+#endif 
 	
 }
 
