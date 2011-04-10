@@ -1,9 +1,9 @@
 BUGS:
  * assert (offset_end - offset_start) <= (packet_len - header)
- * outro formato de serial, um que seja resistente à quedas do sniffer.
- 	- ts c/ precisão de micro-secs
+ * outro formato de serial, um que seja resistente Ã  quedas do sniffer.
+ 	- ts c/ precisÃ£o de micro-secs
 	- algo tipo {ts,serial}, onde serial seria incrementado sempre
-	  que o ts fosse igual ao do último serial solicitado.
+	  que o ts fosse igual ao do Ãºltimo serial solicitado.
 
 
 Programming Task
@@ -12,7 +12,7 @@ ALL =============================
   pacotes doidos/insanos...
 * Verificar como funciona o SourceExchange
 * verificar se setar collect=0 nos dois lados suprime NIDS_CLOSE
-* proteção contra pacotes enoooooooooormes
+* proteÃ§Ã£o contra pacotes enoooooooooormes
 * make test - sizeof float == 4, sizeof * = esperado?
 * erros dentro da metalist
 * rodar essa porra no valgrind
@@ -24,7 +24,7 @@ TCP ==============================
 * condensar mensagens de SENDING e COMPRESSED
 * ERROR cheking to writes_pool calls in e2k_proto.c
 UDP ==============================
-* Pegar mais metadados para colocar no core... (convêm salvar todo o metatag?!)
+* Pegar mais metadados para colocar no core... (convÃªm salvar todo o metatag?!)
 * Um pacote pode vir com MAIS de uma FILEINFO!!! Tratar isso
 
-Implantação da Arquitetura
+ImplantaÃ§Ã£o da Arquitetura
